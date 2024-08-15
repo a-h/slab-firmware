@@ -1,0 +1,25 @@
+name: Build with Nix
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - uses: DeterminateSystems/nix-installer-action@main
+    - uses: DeterminateSystems/magic-nix-cache-action@main
+    - run: nix build '.?submodules=1#slab-firmware'
+    - uses: actions/upload-artifact@v4
+      with:
+        name: slab_firmware.uf2
+        path: result/slab_firmware.uf2
+    - uses: actions/upload-artifact@v4
+      with:
+        name: slab_firmware.bin
+        path: result/slab_firmware.bin
+    - uses: actions/upload-artifact@v4
+      with:
+        name: slab_firmware.elf
+        path: result/slab_firmware.elf

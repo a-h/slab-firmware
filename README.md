@@ -1,5 +1,11 @@
-# slab-firmware
-Firmware for the open-source slab keyboard. Work-in-progress.
+# Slab Firmware
+The full firmware and downloads for the [Slab keyboard project](https://github.com/headblockhead/slab).
+
+Downloads are in the releases section.
+
+## Building
+
+This project uses [Nix](https://nixos.org), run `nix develop` for a development environmnt, `nix build '.?submodules=1#slab-firmware'` to build the firmware and use `nix flake check` to check tests are passing.
 
 ## Tasks
 
@@ -62,12 +68,4 @@ Fetches submodules and creates the build folder.
 ```bash
 git submodule update --init --recursive
 mkdir -p build
-```
-
-### Update-Submodules
-
-Updates the submodules to the latest commit.
-
-```bash
-git submodule update --remote
 ```

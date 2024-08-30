@@ -15,10 +15,15 @@
 #include "usb_descriptors.h"
 #include "ws2812.pio.h"
 #include <math.h>
-#include <squirrel.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "squirrel.h"
+#include "squirrel_consumer.h"
+#include "squirrel_init.h"
+#include "squirrel_key.h"
+#include "squirrel_keyboard.h"
 
 // I2C mutex
 mutex_t i2c_mutex;
@@ -30,9 +35,6 @@ uint64_t last_interaction =
 // The time in ms that the keyboard will wait before being detected as idle. Set
 // to UINT64_MAX to (effictivly) disable. (585 million years).
 uint64_t idle_timeout = 30000;
-
-uint16_t cps = 0; // cps = characters per second
-uint16_t wpm = 0; // wpm = words per minute ( assuming 5 characters per word )
 
 // neopixel helpers
 #define NUM_PIXELS 90
@@ -93,30 +95,16 @@ void hid_task(void) {
   };
   next_report_ms += interval_ms; // Schedule next report
 
-  // Reports are sent in a chain, with one report for each HID device.
-
   // First, send the keyboard report. In a keyboard report, 6 keycodes can be
   // registered as pressed at once. A keycode is a number that represents a key
   // (such as 'a', 'b', '1', '2', etc).
-
+  uint8_t modifiers = keyboard_get_modifiers();
   uint8_t keycode_assembly[6] = {
       0}; // The keycodes to send in the report. A max
           // of 6 keycodes can be regisered as currently pressed at once.
-  uint_fast8_t index = 0; // The index of the keycode_assembly array.
-
-  for (int i = 0; i <= 0xFF; i++) { // Loop through all keycodes.
-    if (active_keycodes[i]) { // If the keycode is registered as active (pressed
-                              // down),
-      keycode_assembly[index] = i; // Add the keycode to the assembly array.
-      index++;                     // Increment the index of the assembly array.
-      if (index >= 6) { // If the report is full, stop adding keycodes. (this
-                        // ignores any keycodes after the 6th active keycode)
-        break;
-      }
-    }
-  }
-  // If there are any keycodes to send, send them.
-  if (index > 0) {
+  if (keyboard_get_keycodes(&keycode_assembly) ||
+      modifiers != 0b00000000) { // keyboard_get_keycodes returns false if no
+                                 // keys are pressed.
     send_hid_kbd_codes(keycode_assembly);
   } else {
     send_hid_kbd_null();
@@ -130,7 +118,8 @@ void tud_hid_report_complete_cb(uint8_t instance, uint8_t const *report,
                                 uint16_t len) {
   if (report[0] == REPORT_ID_KEYBOARD) {
     // Keyboard report is done. Now, send the media key report.
-    tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &active_media_code,
+    uint16_t consumer_code = consumer_get_consumer_code();
+    tud_hid_report(REPORT_ID_CONSUMER_CONTROL, consumer_code,
                    2); // Send the report.
     return;
   }
@@ -530,6 +519,7 @@ int main(void) {
   board_init();               // Initialize the pico board
   tud_init(BOARD_TUD_RHPORT); // Initialize the tinyusb device stack
   tusb_init();                // Initialize tinyusb
+  squirrel_init(75);          // Initialize the squirrel keyboard with 75 keys.
 
   make_keys();        // Initialize the keys on the keyboard
   row_setup();        // Initialize the rows of the keyboard

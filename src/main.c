@@ -24,6 +24,7 @@
 #include "squirrel_init.h"
 #include "squirrel_key.h"
 #include "squirrel_keyboard.h"
+#include "squirrel_quantum.h"
 
 // I2C mutex
 mutex_t i2c_mutex;
@@ -52,7 +53,7 @@ static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b) {
 // USB HID
 
 // Send a HID report with the given keycodes to the host.
-static void send_hid_kbd_codes(uint8_t keycode_assembly[6]) {
+static void send_hid_kbd_codes(uint8_t keycode_assembly[6], uint8_t modifiers) {
   // skip if hid is not ready yet
   if (!tud_hid_ready()) {
     return;
@@ -69,17 +70,6 @@ static void send_hid_kbd_codes(uint8_t keycode_assembly[6]) {
                          // by the host. The only requirement from the firmware
                          // is that it sends a report with all currently pressed
                          // keys every 10ms.
-}
-
-// Send a HID report with no keycodes to the host.
-static void send_hid_kbd_null() {
-  // skip if hid is not ready yet
-  if (!tud_hid_ready()) {
-    return;
-  };
-  tud_hid_keyboard_report(
-      REPORT_ID_KEYBOARD, modifiers,
-      NULL); // Send a report with no keycodes. (no keys pressed)
 }
 
 // Every 10ms, we will sent 1 report for each HID device. In this case, we only
@@ -102,13 +92,8 @@ void hid_task(void) {
   uint8_t keycode_assembly[6] = {
       0}; // The keycodes to send in the report. A max
           // of 6 keycodes can be regisered as currently pressed at once.
-  if (keyboard_get_keycodes(&keycode_assembly) ||
-      modifiers != 0b00000000) { // keyboard_get_keycodes returns false if no
-                                 // keys are pressed.
-    send_hid_kbd_codes(keycode_assembly);
-  } else {
-    send_hid_kbd_null();
-  }
+  keyboard_get_keycodes(&keycode_assembly);
+  send_hid_kbd_codes(keycode_assembly, modifiers);
 }
 
 // Invoked when sent REPORT successfully to host
@@ -119,7 +104,7 @@ void tud_hid_report_complete_cb(uint8_t instance, uint8_t const *report,
   if (report[0] == REPORT_ID_KEYBOARD) {
     // Keyboard report is done. Now, send the media key report.
     uint16_t consumer_code = consumer_get_consumer_code();
-    tud_hid_report(REPORT_ID_CONSUMER_CONTROL, consumer_code,
+    tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &consumer_code,
                    2); // Send the report.
     return;
   }
@@ -297,34 +282,19 @@ void debounce(uint8_t column) {
   // If the key is still in the same state after 20ms, run check_key.
   // Also, if any key is pressed, update the last_interaction time.
   if (r1 == r1_prev) {
-    check_key(keys[0][column], r1);
-    if (r1) {
-      interaction();
-    }
+    check_key(column, r1);
   }
   if (r2 == r2_prev) {
-    check_key(keys[1][column], r2);
-    if (r2) {
-      interaction();
-    }
+    check_key(column + 15, r2);
   }
   if (r3 == r3_prev) {
-    check_key(keys[2][column], r3);
-    if (r3) {
-      interaction();
-    }
+    check_key(column + 30, r3);
   }
   if (r4 == r4_prev) {
-    check_key(keys[3][column], r4);
-    if (r4) {
-      interaction();
-    }
+    check_key(column + 45, r4);
   }
   if (r5 == r5_prev) {
-    check_key(keys[4][column], r5);
-    if (r5) {
-      interaction();
-    }
+    check_key(column + 60, r5);
   }
 }
 
@@ -440,12 +410,11 @@ void draw_homescreen(int frame) {
   ssd1306_draw_empty_square(&display, 2, 2, 27, 28);
   char layer_number[2];
   uint8_t current_layer = 0;
-  for (current_layer = 15; current_layer >= default_layer;
-       current_layer--) { // 15-0
-    if (!layers[current_layer]) {
+  for (current_layer = 16; current_layer > 0; current_layer--) { // 15-0
+    if (!layers[current_layer - 1].active) {
       continue;
     }
-    sprintf(layer_number, "%d", current_layer);
+    sprintf(layer_number, "%d", current_layer - 1);
     break;
   }
   if (current_layer >= 10) {
@@ -453,13 +422,6 @@ void draw_homescreen(int frame) {
   } else {
     ssd1306_draw_string(&display, 8, 6, 3, layer_number);
   };
-  // Custom Code display
-  char binary_str[4];
-  // Convert the 16 bit number into a hex string
-  for (int i = 0; i < 16; i++) {
-    sprintf(binary_str, "0x%x", custom_code_buffer);
-  }
-  ssd1306_draw_string(&display, 32, 0, 1, binary_str);
 }
 
 void display_task(void) {

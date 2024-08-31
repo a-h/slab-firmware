@@ -35,7 +35,7 @@ uint64_t last_interaction =
 
 // The time in ms that the keyboard will wait before being detected as idle. Set
 // to UINT64_MAX to (effictivly) disable. (585 million years).
-uint64_t idle_timeout = 30000;
+uint64_t idle_timeout = 3000;
 
 // neopixel helpers
 #define NUM_PIXELS 90
@@ -89,9 +89,10 @@ void hid_task(void) {
   // registered as pressed at once. A keycode is a number that represents a key
   // (such as 'a', 'b', '1', '2', etc).
   uint8_t modifiers = keyboard_get_modifiers();
-  uint8_t keycode_assembly[6] = {
-      0}; // The keycodes to send in the report. A max
-          // of 6 keycodes can be regisered as currently pressed at once.
+  uint8_t keycode_assembly[6] = {0, 0, 0, 0, 0, 0};
+  // The keycodes to send in the report. A
+  // max of 6 keycodes can be regisered as
+  // currently pressed at once.
   keyboard_get_keycodes(&keycode_assembly);
   send_hid_kbd_codes(keycode_assembly, modifiers);
 }
@@ -104,11 +105,10 @@ void tud_hid_report_complete_cb(uint8_t instance, uint8_t const *report,
   if (report[0] == REPORT_ID_KEYBOARD) {
     // Keyboard report is done. Now, send the media key report.
     uint16_t consumer_code = consumer_get_consumer_code();
-    tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &consumer_code,
-                   2); // Send the report.
+    //    tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &consumer_code,
+    //                   2); // Send the report.
     return;
   }
-
   (void)instance;
   (void)report;
   (void)len;
@@ -282,19 +282,29 @@ void debounce(uint8_t column) {
   // If the key is still in the same state after 20ms, run check_key.
   // Also, if any key is pressed, update the last_interaction time.
   if (r1 == r1_prev) {
-    check_key(column, r1);
+    check_key(1, r1);
+    if (r1)
+      interaction();
   }
   if (r2 == r2_prev) {
-    check_key(column + 15, r2);
+    check_key(1, r2);
+    if (r1)
+      interaction();
   }
   if (r3 == r3_prev) {
-    check_key(column + 30, r3);
+    check_key(1, r3);
+    if (r1)
+      interaction();
   }
   if (r4 == r4_prev) {
-    check_key(column + 45, r4);
+    check_key(1, r4);
+    if (r1)
+      interaction();
   }
   if (r5 == r5_prev) {
-    check_key(column + 60, r5);
+    check_key(1, r5);
+    if (r1)
+      interaction();
   }
 }
 
@@ -422,6 +432,10 @@ void draw_homescreen(int frame) {
   } else {
     ssd1306_draw_string(&display, 8, 6, 3, layer_number);
   };
+
+  char ms[10];
+  sprintf(ms, "%d", last_interaction);
+  ssd1306_draw_string(&display, 30, 2, 1, ms);
 }
 
 void display_task(void) {

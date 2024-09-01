@@ -105,8 +105,8 @@ void tud_hid_report_complete_cb(uint8_t instance, uint8_t const *report,
   if (report[0] == REPORT_ID_KEYBOARD) {
     // Keyboard report is done. Now, send the media key report.
     uint16_t consumer_code = consumer_get_consumer_code();
-    //    tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &consumer_code,
-    //                   2); // Send the report.
+    tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &consumer_code,
+                   2); // Send the report.
     return;
   }
   (void)instance;
@@ -282,29 +282,34 @@ void debounce(uint8_t column) {
   // If the key is still in the same state after 20ms, run check_key.
   // Also, if any key is pressed, update the last_interaction time.
   if (r1 == r1_prev) {
-    check_key(1, r1);
-    if (r1)
+    check_key(column, r1);
+    if (r1) {
       interaction();
+    }
   }
   if (r2 == r2_prev) {
-    check_key(1, r2);
-    if (r1)
+    check_key(column + 15, r2);
+    if (r2) {
       interaction();
+    }
   }
   if (r3 == r3_prev) {
-    check_key(1, r3);
-    if (r1)
+    check_key(column + 30, r3);
+    if (r3) {
       interaction();
+    }
   }
   if (r4 == r4_prev) {
-    check_key(1, r4);
-    if (r1)
+    check_key(column + 45, r4);
+    if (r4) {
       interaction();
+    }
   }
   if (r5 == r5_prev) {
-    check_key(1, r5);
-    if (r1)
+    check_key(column + 60, r5);
+    if (r5) {
       interaction();
+    }
   }
 }
 

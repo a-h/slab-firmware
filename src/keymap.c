@@ -1,14 +1,12 @@
 #include "keymap.h"
 #include "tusb.h"
+#include <stdlib.h>
 
 #include "squirrel.h"
 #include "squirrel_keymap.h"
 #include "squirrel_quantum.h"
 
 void make_keys(void) {
-  new_layer(0);
-  new_layer(1);
-  new_layer(2);
   make_workman_layer(0);
   make_fn1_layer(1);
   make_fn2_layer(2);

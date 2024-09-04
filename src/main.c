@@ -441,6 +441,10 @@ void draw_homescreen(int frame) {
   char ms[10];
   sprintf(ms, "%d", last_interaction);
   ssd1306_draw_string(&display, 30, 2, 1, ms);
+
+  char mod[10];
+  sprintf(mod, "%d", keyboard_get_modifiers());
+  ssd1306_draw_string(&display, 30, 12, 1, mod);
 }
 
 void display_task(void) {

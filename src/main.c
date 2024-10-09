@@ -59,6 +59,8 @@ static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b) {
   return ((uint32_t)(r) << 8) | ((uint32_t)(g) << 16) | (uint32_t)(b);
 }
 
+int last_keycode = 0;
+
 // send_hid_kbd_codes sends a HID report with the given keycodes to the host.
 enum slab_err send_hid_kbd_codes(uint8_t keycode_assembly[6],
                                  uint8_t modifiers) {
@@ -68,6 +70,16 @@ enum slab_err send_hid_kbd_codes(uint8_t keycode_assembly[6],
   };
   // Send the currently active keycodes and modifiers to the host.
   tud_hid_keyboard_report(REPORT_ID_KEYBOARD, modifiers, keycode_assembly);
+  return SLAB_NOERR;
+}
+
+enum slab_err send_hid_no_keycodes(uint8_t modifiers) {
+  if (!tud_hid_ready()) {
+    // Don't send if HID is not ready.
+    return SLAB_HID_NOT_READY;
+  };
+  // Send the currently active keycodes and modifiers to the host.
+  tud_hid_keyboard_report(REPORT_ID_KEYBOARD, modifiers, NULL);
   return SLAB_NOERR;
 }
 
@@ -86,8 +98,13 @@ void hid_task(void) {
   uint8_t modifiers = keyboard_get_modifiers(); // Get the current modifiers.
   // Define an array to store the active keycodes. 6 is the limit for USB HID.
   uint8_t active_keycodes[6] = {0, 0, 0, 0, 0, 0};
-  keyboard_get_keycodes(&active_keycodes); // Fill the array with the keycodes.
-  send_hid_kbd_codes(active_keycodes, modifiers); // Send the HID report.
+  bool any_keycodes = keyboard_get_keycodes(
+      &active_keycodes); // Fill the array with the keycodes.
+  if (any_keycodes) {
+    send_hid_kbd_codes(active_keycodes, modifiers); // Send the HID report.
+  } else {
+    send_hid_no_keycodes(modifiers); // Send the HID report.
+  }
 }
 
 // tud_hid_report_complete_cb is invoked when a report is sent to the host.
@@ -158,7 +175,6 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
       return;
     }
     if (report_id == 0b00000010) { // Save the current mode state to flash
-
       return;
     }
     if (report_id == 0b00000011) { // Update the current mode state
@@ -262,7 +278,6 @@ void debounce(uint8_t column) {
   // Wait for 200us
   sleep_us(200);
 
-  // Get the state of all keys in the column again.
   r1 = gpio_get(1);
   r2 = gpio_get(0);
   r3 = gpio_get(29);
@@ -496,7 +511,7 @@ int main(void) {
   board_init();               // Initialize the pico board
   tud_init(BOARD_TUD_RHPORT); // Initialize the tinyusb device stack
   tusb_init();                // Initialize tinyusb
-  squirrel_init(75);          // Initialize the squirrel keyboard with 75 keys.
+  squirrel_init();            // Initialize the squirrel keyboard with 75 keys.
 
   make_keys();        // Initialize the keys on the keyboard
   row_setup();        // Initialize the rows of the keyboard
@@ -506,6 +521,16 @@ int main(void) {
 
   // Load the defualt LED state from flash.
   load_led_state(NULL);
+
+  gpio_init(25);
+  gpio_set_dir(25, GPIO_OUT);
+  gpio_init(17);
+  gpio_set_dir(17, GPIO_OUT);
+  gpio_init(16);
+  gpio_set_dir(16, GPIO_OUT);
+  gpio_put(25, 1); // turn off leds
+  gpio_put(17, 1);
+  gpio_put(16, 1);
 
   // Core 1 loop
   multicore_launch_core1(core1_main);

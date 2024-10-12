@@ -15,138 +15,119 @@
 #include "usb_descriptors.h"
 #include "ws2812.pio.h"
 #include <math.h>
-#include <squirrel.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "squirrel.h"
+#include "squirrel_consumer.h"
+#include "squirrel_init.h"
+#include "squirrel_key.h"
+#include "squirrel_keyboard.h"
+#include "squirrel_quantum.h"
+
+// ERR code enum for error handling.
+enum slab_err {
+  SLAB_NOERR,
+  SLAB_HID_NOT_READY,
+
+};
+
 // I2C mutex
 mutex_t i2c_mutex;
 
-uint64_t last_interaction =
-    0; // the board_millis() value of the last
-       // interaction with the keyboard. Used to trigger screensaver.
+// last_interaction is the time in ms of the last interaction with the keyboard.
+uint64_t last_interaction = 0;
 
-// The time in ms that the keyboard will wait before being detected as idle. Set
-// to UINT64_MAX to (effictivly) disable. (585 million years).
-uint64_t idle_timeout = 30000;
+// idle_timeout is the amount of time in ms before the user is considered AFK.
+// Set to UINT64_MAX to (effictivly) disable timout. (585 million years).
+uint64_t idle_timeout = 3000;
 
-uint16_t cps = 0; // cps = characters per second
-uint16_t wpm = 0; // wpm = words per minute ( assuming 5 characters per word )
+// RGB LEDs
+#define NUM_PIXELS 90 // 75 keys + 15 leds on top.
+#define WS2812_GPIO 26
+// leds stores the R, G, and B values as uint8s for each pixel.
+uint8_t leds[NUM_PIXELS * 3] = {0};
 
-// neopixel helpers
-#define NUM_PIXELS 90
-#define WS2812_PIN 26
-uint8_t leds[NUM_PIXELS * 3] = {0}; // The state of each LED in the LED strip.
-
+// put_pixel sends a single set of RGB values to the WS2812 LED strip.
 static inline void put_pixel(uint32_t pixel_grb) {
   pio_sm_put_blocking(pio0, 0, pixel_grb << 8u);
 }
 
+// urgb_u32 is a helper function to convert 3 RGB values to a single uint32_t.
 static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b) {
   return ((uint32_t)(r) << 8) | ((uint32_t)(g) << 16) | (uint32_t)(b);
 }
 
-// USB HID
+int last_keycode = 0;
 
-// Send a HID report with the given keycodes to the host.
-static void send_hid_kbd_codes(uint8_t keycode_assembly[6]) {
-  // skip if hid is not ready yet
+// send_hid_kbd_codes sends a HID report with the given keycodes to the host.
+enum slab_err send_hid_kbd_codes(uint8_t keycode_assembly[6],
+                                 uint8_t modifiers) {
   if (!tud_hid_ready()) {
-    return;
+    // Don't send if HID is not ready.
+    return SLAB_HID_NOT_READY;
   };
-  tud_hid_keyboard_report(
-      REPORT_ID_KEYBOARD, modifiers,
-      keycode_assembly); // Send the report. A report can be for a keyboard,
-                         // mouse, joystick etc. In a keyboard report, the first
-                         // argument is the report ID, the second is the
-                         // modifiers (ctrl, shift, alt etc.). These are stored
-                         // as a bitfield. The third is the keycodes to send.
-                         // All keycodes that are sent are considered currently
-                         // pressed. Detecting key presses and releases is done
-                         // by the host. The only requirement from the firmware
-                         // is that it sends a report with all currently pressed
-                         // keys every 10ms.
+  // Send the currently active keycodes and modifiers to the host.
+  tud_hid_keyboard_report(REPORT_ID_KEYBOARD, modifiers, keycode_assembly);
+  return SLAB_NOERR;
 }
 
-// Send a HID report with no keycodes to the host.
-static void send_hid_kbd_null() {
-  // skip if hid is not ready yet
+enum slab_err send_hid_no_keycodes(uint8_t modifiers) {
   if (!tud_hid_ready()) {
-    return;
+    // Don't send if HID is not ready.
+    return SLAB_HID_NOT_READY;
   };
-  tud_hid_keyboard_report(
-      REPORT_ID_KEYBOARD, modifiers,
-      NULL); // Send a report with no keycodes. (no keys pressed)
+  // Send the currently active keycodes and modifiers to the host.
+  tud_hid_keyboard_report(REPORT_ID_KEYBOARD, modifiers, NULL);
+  return SLAB_NOERR;
 }
 
-// Every 10ms, we will sent 1 report for each HID device. In this case, we only
-// have 1 HID device, the keyboard.
+// Every 10ms, we will send 1 HID report (per device) to the host.
+// First, the keyboard. Subsequent reports will be sent in the
+// tud_hid_report_complete_cb callback.
 void hid_task(void) {
-  // Poll every 10ms
-  const uint32_t interval_ms = 10;    // Time between each report
+  const uint32_t interval_ms = 10;    // Time between reports
   static uint32_t next_report_ms = 0; // Time of next report
 
-  if (board_millis() - next_report_ms < interval_ms) { // If we are running too
-                                                       // fast, return.
-    return;
+  if (board_millis() - next_report_ms < interval_ms) {
+    return; // Not time for a report yet.
   };
-  next_report_ms += interval_ms; // Schedule next report
+  next_report_ms += interval_ms; // Set the time for the next report
 
-  // Reports are sent in a chain, with one report for each HID device.
-
-  // First, send the keyboard report. In a keyboard report, 6 keycodes can be
-  // registered as pressed at once. A keycode is a number that represents a key
-  // (such as 'a', 'b', '1', '2', etc).
-
-  uint8_t keycode_assembly[6] = {
-      0}; // The keycodes to send in the report. A max
-          // of 6 keycodes can be regisered as currently pressed at once.
-  uint_fast8_t index = 0; // The index of the keycode_assembly array.
-
-  for (int i = 0; i <= 0xFF; i++) { // Loop through all keycodes.
-    if (active_keycodes[i]) { // If the keycode is registered as active (pressed
-                              // down),
-      keycode_assembly[index] = i; // Add the keycode to the assembly array.
-      index++;                     // Increment the index of the assembly array.
-      if (index >= 6) { // If the report is full, stop adding keycodes. (this
-                        // ignores any keycodes after the 6th active keycode)
-        break;
-      }
-    }
-  }
-  // If there are any keycodes to send, send them.
-  if (index > 0) {
-    send_hid_kbd_codes(keycode_assembly);
+  uint8_t modifiers = keyboard_get_modifiers(); // Get the current modifiers.
+  // Define an array to store the active keycodes. 6 is the limit for USB HID.
+  uint8_t active_keycodes[6] = {0, 0, 0, 0, 0, 0};
+  bool any_keycodes = keyboard_get_keycodes(
+      &active_keycodes); // Fill the array with the keycodes.
+  if (any_keycodes) {
+    send_hid_kbd_codes(active_keycodes, modifiers); // Send the HID report.
   } else {
-    send_hid_kbd_null();
+    send_hid_no_keycodes(modifiers); // Send the HID report.
   }
 }
 
-// Invoked when sent REPORT successfully to host
-// Application can use this to send the next report
-// Note: For composite reports, report[0] is report ID
+// tud_hid_report_complete_cb is invoked when a report is sent to the host.
+// report[0] is the report ID of the report just sent.
 void tud_hid_report_complete_cb(uint8_t instance, uint8_t const *report,
                                 uint16_t len) {
-  if (report[0] == REPORT_ID_KEYBOARD) {
-    // Keyboard report is done. Now, send the media key report.
-    tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &active_media_code,
-                   2); // Send the report.
-    return;
-  }
-
   (void)instance;
   (void)report;
   (void)len;
+  if (report[0] == REPORT_ID_KEYBOARD) {
+    // If the keyboard report was just sent, send the consumer report.
+    uint16_t consumer_code = consumer_get_consumer_code();
+    tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &consumer_code,
+                   2); // Send the report.
+    return;
+  }
 }
 
-// Invoked when received GET_REPORT control request
-// Application must fill buffer report's content and return its length.
-// Return zero will cause the stack to STALL request
+// GET_REPORT callback (host requests data from device).
+// Currently unused.
 uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id,
                                hid_report_type_t report_type, uint8_t *buffer,
                                uint16_t reqlen) {
-  // This callback is not used, but is required by tinyusb.
   (void)instance;
   (void)report_id;
   (void)report_type;
@@ -194,7 +175,6 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
       return;
     }
     if (report_id == 0b00000010) { // Save the current mode state to flash
-
       return;
     }
     if (report_id == 0b00000011) { // Update the current mode state
@@ -298,7 +278,6 @@ void debounce(uint8_t column) {
   // Wait for 200us
   sleep_us(200);
 
-  // Get the state of all keys in the column again.
   r1 = gpio_get(1);
   r2 = gpio_get(0);
   r3 = gpio_get(29);
@@ -308,31 +287,31 @@ void debounce(uint8_t column) {
   // If the key is still in the same state after 20ms, run check_key.
   // Also, if any key is pressed, update the last_interaction time.
   if (r1 == r1_prev) {
-    check_key(keys[0][column], r1);
+    check_key(column, r1);
     if (r1) {
       interaction();
     }
   }
   if (r2 == r2_prev) {
-    check_key(keys[1][column], r2);
+    check_key(column + 15, r2);
     if (r2) {
       interaction();
     }
   }
   if (r3 == r3_prev) {
-    check_key(keys[2][column], r3);
+    check_key(column + 30, r3);
     if (r3) {
       interaction();
     }
   }
   if (r4 == r4_prev) {
-    check_key(keys[3][column], r4);
+    check_key(column + 45, r4);
     if (r4) {
       interaction();
     }
   }
   if (r5 == r5_prev) {
-    check_key(keys[4][column], r5);
+    check_key(column + 60, r5);
     if (r5) {
       interaction();
     }
@@ -383,7 +362,7 @@ PIO led_pio = pio0;
 void led_init(void) {
   uint led_pio_offset = pio_add_program(led_pio, &ws2812_program);
   uint led_sm = pio_claim_unused_sm(led_pio, true);
-  ws2812_program_init(led_pio, led_sm, led_pio_offset, WS2812_PIN, 800000,
+  ws2812_program_init(led_pio, led_sm, led_pio_offset, WS2812_GPIO, 800000,
                       false);
 }
 
@@ -421,12 +400,13 @@ void rotary_task(void) {
 // I2C Display
 ssd1306_t display;
 
-char screensaver_text[14] = {'S', 'L', 'A', 'B', ' ', 'K', 'E',
-                             'Y', 'B', 'O', 'A', 'R', 'D', ' '};
+#define SCREENSAVER_LENGTH 14 // Length of the screensaver text.
+char screensaver_text[SCREENSAVER_LENGTH] = {'S', 'L', 'A', 'B', ' ', 'K', 'E',
+                                             'Y', 'B', 'O', 'A', 'R', 'D', ' '};
 
 void draw_screensaver(int frame) {
-  // write 'SLAB KEYBOARD' waving across the screen
-  for (uint8_t x = 0; x < 14; x++) {
+  // write the screensaver text waving across the screen
+  for (uint8_t x = 0; x < SCREENSAVER_LENGTH; x++) {
     int y = 2 * sin(-frame / 10.0 + x * 2) + 8;
     if (y < 0) {
       y = 0;
@@ -434,15 +414,16 @@ void draw_screensaver(int frame) {
     if (y > 32) {
       y = 32;
     }
-    int letter_x = x * 22 + (-frame % 384) + (22 * 3);
+    int letter_x = x * 22 + (-frame % (27 * SCREENSAVER_LENGTH)) + (22 * 3);
     if (letter_x < 0) {
-      letter_x += 384;
+      letter_x += (27 * SCREENSAVER_LENGTH);
     }
-    if (letter_x > 384) {
-      letter_x -= 384;
+    if (letter_x > (27 * SCREENSAVER_LENGTH)) {
+      letter_x -= (27 * SCREENSAVER_LENGTH);
     }
     ssd1306_draw_char(&display, letter_x, y, 3, screensaver_text[x]);
-    ssd1306_draw_char(&display, letter_x - 384, y, 3, screensaver_text[x]);
+    ssd1306_draw_char(&display, letter_x - (27 * SCREENSAVER_LENGTH), y, 3,
+                      screensaver_text[x]);
   }
 }
 
@@ -451,12 +432,11 @@ void draw_homescreen(int frame) {
   ssd1306_draw_empty_square(&display, 2, 2, 27, 28);
   char layer_number[2];
   uint8_t current_layer = 0;
-  for (current_layer = 15; current_layer >= default_layer;
-       current_layer--) { // 15-0
-    if (!layers[current_layer]) {
+  for (current_layer = 16; current_layer > 0; current_layer--) { // 15-0
+    if (!layers[current_layer - 1].active) {
       continue;
     }
-    sprintf(layer_number, "%d", current_layer);
+    sprintf(layer_number, "%d", current_layer - 1);
     break;
   }
   if (current_layer >= 10) {
@@ -464,13 +444,14 @@ void draw_homescreen(int frame) {
   } else {
     ssd1306_draw_string(&display, 8, 6, 3, layer_number);
   };
-  // Custom Code display
-  char binary_str[4];
-  // Convert the 16 bit number into a hex string
-  for (int i = 0; i < 16; i++) {
-    sprintf(binary_str, "0x%x", custom_code_buffer);
-  }
-  ssd1306_draw_string(&display, 32, 0, 1, binary_str);
+
+  char ms[10];
+  sprintf(ms, "%d", last_interaction);
+  ssd1306_draw_string(&display, 30, 2, 1, ms);
+
+  char mod[10];
+  sprintf(mod, "%d", keyboard_get_modifiers());
+  ssd1306_draw_string(&display, 30, 12, 1, mod);
 }
 
 void display_task(void) {
@@ -525,11 +506,12 @@ void core0_main() {
   }
 }
 
-// The main function, runs tinyusb and the key scanning loop.
+// The main function, runs initialization.
 int main(void) {
   board_init();               // Initialize the pico board
   tud_init(BOARD_TUD_RHPORT); // Initialize the tinyusb device stack
   tusb_init();                // Initialize tinyusb
+  squirrel_init();            // Initialize the squirrel keyboard with 75 keys.
 
   make_keys();        // Initialize the keys on the keyboard
   row_setup();        // Initialize the rows of the keyboard
@@ -537,8 +519,18 @@ int main(void) {
   rotary_init();      // Initialize the rotary encoder
   i2c_devices_init(); // Initialize the I2C devices
 
-  // Load the LED state from flash.
+  // Load the defualt LED state from flash.
   load_led_state(NULL);
+
+  gpio_init(25);
+  gpio_set_dir(25, GPIO_OUT);
+  gpio_init(17);
+  gpio_set_dir(17, GPIO_OUT);
+  gpio_init(16);
+  gpio_set_dir(16, GPIO_OUT);
+  gpio_put(25, 1); // turn off leds
+  gpio_put(17, 1);
+  gpio_put(16, 1);
 
   // Core 1 loop
   multicore_launch_core1(core1_main);

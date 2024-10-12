@@ -26,6 +26,8 @@ add_compile_options(-Wall # Enable all warnings
         -Wno-format          # int != int32_t as far as the compiler is concerned because gcc has int32_t as long int
         )
 
+add_compile_definitions(SQUIRREL_KEYCOUNT=75)
+
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
         add_compile_options(-Og) # Enable debug optimizations
 else()

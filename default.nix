@@ -23,7 +23,7 @@ stdenv.mkDerivation {
 
   installPhase = ''
     mkdir -p $out
-    cp {slab.bin,slab.elf,slab.uf2,slab.elf.map,slab.dis} $out
+    cp {*.bin,*.elf,*.uf2,*.elf.map,*.dis} $out
   '';
 
   meta = with lib; {

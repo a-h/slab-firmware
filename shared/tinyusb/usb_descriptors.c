@@ -24,6 +24,7 @@
  */
 
 #include "usb_descriptors.h"
+#include "pico/unique_id.h"
 #include "tusb.h"
 
 /* A combination of interfaces must have a unique product id, since PC will save
@@ -33,8 +34,9 @@
  * Auto ProductID layout's Bitmap:
  *   [MSB]         HID | MSC | CDC          [LSB]
  */
-#define USB_VID 0x4EAD // HEAD(blockhead)
-#define USB_PID 0x57AB // SLAB
+// TODO: Change this to a unique VID/PID from pid.codes
+#define USB_VID 0x1209 // pid.codes
+#define USB_PID 0x0001 // Test PID - DO NOT USE IN PRODUCTION
 #define USB_BCD 0x0200
 
 //--------------------------------------------------------------------+
@@ -168,11 +170,11 @@ uint8_t const *tud_descriptor_configuration_cb(uint8_t index) {
 //--------------------------------------------------------------------+
 
 // array of pointer to string descriptors
-char const *string_desc_arr[] = {
-    (const char[]){0x09, 0x04}, // 0: is supported language is English (0x0409)
-    "headblockhead",            // 1: Manufacturer
-    "Slab",                     // 2: Product
-    "00000000",                 // 3: Serials, should use chip ID
+char *string_desc_arr[] = {
+    (char[]){0x09, 0x04}, // 0: is supported language is English (0x0409)
+    "headblockhead",      // 1: Manufacturer
+    "Slab",               // 2: Product
+    "00000000",           // 3: Serial - replaced in tud_descriptor_string_cb()
 };
 
 static uint16_t _desc_str[32];
@@ -182,6 +184,9 @@ static uint16_t _desc_str[32];
 // enough for transfer to complete
 uint16_t const *tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
   (void)langid;
+
+  pico_get_unique_board_id_string(string_desc_arr[3],
+                                  sizeof(string_desc_arr[3]));
 
   uint8_t chr_count;
 

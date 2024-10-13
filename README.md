@@ -9,63 +9,60 @@ This project uses [Nix](https://nixos.org), run `nix develop` for a development 
 
 ## Tasks
 
-### Upload-Release
+### upload
 Directory: ./build
-Requires: build-release
+Requires: build
 
-Builds, then copies the firmware with debug optimisations to the RP2040.
+Builds and uploads the firmware to the RP2040.
 
 ```bash
 export PICO_DIR=`findmnt -S LABEL=RPI-RP2 -o TARGET -fn`
 cp ./slab.uf2 $PICO_DIR
 ```
 
-### Upload-Debug
+### upload-dbg
 Directory: ./build
-Requires: build-debug
+Requires: build-dbg
 
-Builds, then copies the firmware with speed optimisations to the RP2040.
+Builds and uploads debug firmware to the RP2040.
 
 ```bash
 export PICO_DIR=`findmnt -S LABEL=RPI-RP2 -o TARGET -fn`
 cp ./slab.uf2 $PICO_DIR
 ```
 
-### Build-Release
+### build
 Directory: ./build
-
-Builds the keyboard firmware optimized for size.
 
 ```bash
 cmake -DCMAKE_BUILD_TYPE=Release ..
-make -j4 slab
+cmake --build . -j 16
 ```
 
-### Build-Debug
+### build-dbg
 Directory: ./build
 
 Builds the keyboard firmware with development outputs.
 
 ```bash
 cmake -DCMAKE_BUILD_TYPE=Debug .. 
-make -j4 slab
+cmake --build . -j 16
 cp compile_commands.json ../ # Copies the autocomplete information for ccls.
 ```
 
-### Clean-Development
+### clean
 
-Resets development files for a clean build.
+Deletes the contents of the build directory.
 
 ```bash
 rm -rf ./build
 mkdir build
 ```
 
-### Initialize-Development
+### fetch-submodules
 
-Fetches submodules and creates the build folder.
+Fetches submodules if not already present.
 
 ```bash
 git submodule update --init --recursive
-mkdir -p build
 ```

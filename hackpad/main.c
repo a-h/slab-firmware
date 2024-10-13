@@ -9,7 +9,6 @@
 #include "pico/stdlib.h"
 #include "pico/time.h"
 #include "pico_pca9555.h"
-#include "quadrature_encoder.pio.h"
 #include "ssd1306.h"
 #include "tusb.h"
 #include "usb_descriptors.h"
@@ -26,12 +25,9 @@
 #include "squirrel_keyboard.h"
 #include "squirrel_quantum.h"
 
-// ERR code enum for error handling.
-enum slab_err {
-  SLAB_NOERR,
-  SLAB_HID_NOT_READY,
+#include "tinyusb_squirrel.h"
 
-};
+#include "slab.h"
 
 // I2C mutex
 mutex_t i2c_mutex;
@@ -44,8 +40,9 @@ uint64_t last_interaction = 0;
 uint64_t idle_timeout = 3000;
 
 // RGB LEDs
-#define NUM_PIXELS 90 // 75 keys + 15 leds on top.
+#define NUM_PIXELS 29 // 20 keys + 9 leds on the side.
 #define WS2812_GPIO 26
+
 // leds stores the R, G, and B values as uint8s for each pixel.
 uint8_t leds[NUM_PIXELS * 3] = {0};
 
@@ -57,83 +54,6 @@ static inline void put_pixel(uint32_t pixel_grb) {
 // urgb_u32 is a helper function to convert 3 RGB values to a single uint32_t.
 static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b) {
   return ((uint32_t)(r) << 8) | ((uint32_t)(g) << 16) | (uint32_t)(b);
-}
-
-int last_keycode = 0;
-
-// send_hid_kbd_codes sends a HID report with the given keycodes to the host.
-enum slab_err send_hid_kbd_codes(uint8_t keycode_assembly[6],
-                                 uint8_t modifiers) {
-  if (!tud_hid_ready()) {
-    // Don't send if HID is not ready.
-    return SLAB_HID_NOT_READY;
-  };
-  // Send the currently active keycodes and modifiers to the host.
-  tud_hid_keyboard_report(REPORT_ID_KEYBOARD, modifiers, keycode_assembly);
-  return SLAB_NOERR;
-}
-
-enum slab_err send_hid_no_keycodes(uint8_t modifiers) {
-  if (!tud_hid_ready()) {
-    // Don't send if HID is not ready.
-    return SLAB_HID_NOT_READY;
-  };
-  // Send the currently active keycodes and modifiers to the host.
-  tud_hid_keyboard_report(REPORT_ID_KEYBOARD, modifiers, NULL);
-  return SLAB_NOERR;
-}
-
-// Every 10ms, we will send 1 HID report (per device) to the host.
-// First, the keyboard. Subsequent reports will be sent in the
-// tud_hid_report_complete_cb callback.
-void hid_task(void) {
-  const uint32_t interval_ms = 10;    // Time between reports
-  static uint32_t next_report_ms = 0; // Time of next report
-
-  if (board_millis() - next_report_ms < interval_ms) {
-    return; // Not time for a report yet.
-  };
-  next_report_ms += interval_ms; // Set the time for the next report
-
-  uint8_t modifiers = keyboard_get_modifiers(); // Get the current modifiers.
-  // Define an array to store the active keycodes. 6 is the limit for USB HID.
-  uint8_t active_keycodes[6] = {0, 0, 0, 0, 0, 0};
-  bool any_keycodes = keyboard_get_keycodes(
-      &active_keycodes); // Fill the array with the keycodes.
-  if (any_keycodes) {
-    send_hid_kbd_codes(active_keycodes, modifiers); // Send the HID report.
-  } else {
-    send_hid_no_keycodes(modifiers); // Send the HID report.
-  }
-}
-
-// tud_hid_report_complete_cb is invoked when a report is sent to the host.
-// report[0] is the report ID of the report just sent.
-void tud_hid_report_complete_cb(uint8_t instance, uint8_t const *report,
-                                uint16_t len) {
-  (void)instance;
-  (void)report;
-  (void)len;
-  if (report[0] == REPORT_ID_KEYBOARD) {
-    // If the keyboard report was just sent, send the consumer report.
-    uint16_t consumer_code = consumer_get_consumer_code();
-    tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &consumer_code,
-                   2); // Send the report.
-    return;
-  }
-}
-
-// GET_REPORT callback (host requests data from device).
-// Currently unused.
-uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id,
-                               hid_report_type_t report_type, uint8_t *buffer,
-                               uint16_t reqlen) {
-  (void)instance;
-  (void)report_id;
-  (void)report_type;
-  (void)buffer;
-  (void)reqlen;
-  return 0;
 }
 
 uint8_t temp_leds[NUM_PIXELS * 3] = {0};
@@ -156,6 +76,18 @@ void flash_led_state(void *var) {
 
 void load_led_state(void *var) { memcpy(leds, flash_target, NUM_PIXELS * 3); }
 
+// GET_REPORT callback (host requests data from device).
+// Currently unused.
+uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id,
+                               hid_report_type_t report_type, uint8_t *buffer,
+                               uint16_t reqlen) {
+  (void)instance;
+  (void)report_id;
+  (void)report_type;
+  (void)buffer;
+  (void)reqlen;
+  return 0;
+}
 // Invoked when received SET_REPORT control request or
 // received data on OUT endpoint ( Report ID = 0, Type = 0 )
 void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
@@ -368,33 +300,10 @@ void led_init(void) {
 
 void led_task(void) {
   // Update the LED strip with the new data.
-  for (int i = 0; i < 90; i++) {
+  for (int i = 0; i < NUM_PIXELS; i++) {
     put_pixel(urgb_u32(leds[i * 3], leds[i * 3 + 1], leds[i * 3 + 2]));
   }
   sleep_us(50);
-}
-
-// Rotary Encoder
-
-#define ROTARY_A_PIN 3 // The B pin must be the A pin + 1.
-#define ROTARY_SW_PIN 2
-
-PIO rot_pio = pio1;
-int rotary_value, rotary_delta, rotary_last_value = 0;
-const uint rot_sm = 0; // must be loaded at 0
-
-void rotary_init(void) {
-  pio_add_program(rot_pio, &quadrature_encoder_program);
-  quadrature_encoder_program_init(rot_pio, rot_sm, ROTARY_A_PIN, 0);
-}
-
-void rotary_task(void) {
-  rotary_value = -(quadrature_encoder_get_count(rot_pio, rot_sm) / 2);
-  rotary_delta = rotary_value - rotary_last_value;
-  rotary_last_value = rotary_value;
-  if (rotary_delta != 0) {
-    interaction();
-  }
 }
 
 // I2C Display
@@ -487,12 +396,11 @@ void i2c_devices_init(void) {
   ssd1306_set_rotation(&display, ROT_180);
 }
 
-// Core 1 deals with the LED strip, rotary encoder and OLED display.
+// Core 1 deals with the LED strip and OLED display.
 void core1_main() {
   flash_safe_execute_core_init();
   while (true) {
     led_task();
-    rotary_task();
     display_task();
   }
 }
@@ -514,23 +422,11 @@ int main(void) {
   squirrel_init();            // Initialize the squirrel keyboard with 75 keys.
 
   make_keys();        // Initialize the keys on the keyboard
-  row_setup();        // Initialize the rows of the keyboard
   led_init();         // Initialize the WS2812 LED strip
-  rotary_init();      // Initialize the rotary encoder
   i2c_devices_init(); // Initialize the I2C devices
 
   // Load the defualt LED state from flash.
   load_led_state(NULL);
-
-  gpio_init(25);
-  gpio_set_dir(25, GPIO_OUT);
-  gpio_init(17);
-  gpio_set_dir(17, GPIO_OUT);
-  gpio_init(16);
-  gpio_set_dir(16, GPIO_OUT);
-  gpio_put(25, 1); // turn off leds
-  gpio_put(17, 1);
-  gpio_put(16, 1);
 
   // Core 1 loop
   multicore_launch_core1(core1_main);

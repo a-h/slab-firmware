@@ -9,12 +9,17 @@ add_executable(slab-hackpad
 target_sources(slab-hackpad PUBLIC
         ${PROJECT_SOURCE_DIR}/shared/tinyusb/tinyusb_squirrel.c
         ${PROJECT_SOURCE_DIR}/shared/tinyusb/usb_descriptors.c
+        ${PROJECT_SOURCE_DIR}/shared/tinyusb/tinyusb_openrgb.c
+        ${PROJECT_SOURCE_DIR}/shared/display/display.c
+        ${PROJECT_SOURCE_DIR}/shared/rgbleds/rgbleds.c
         ${CMAKE_CURRENT_LIST_DIR}/keymap.c
         )
 
 target_include_directories(slab-hackpad PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}
         ${PROJECT_SOURCE_DIR}/shared/tinyusb
+        ${PROJECT_SOURCE_DIR}/shared/rgbleds
+        ${PROJECT_SOURCE_DIR}/shared/display
         ${PROJECT_SOURCE_DIR}/shared
         )
 

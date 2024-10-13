@@ -8,15 +8,7 @@
 }:
 
 stdenv.mkDerivation {
-  pname = "slab-firmware";
-  version = "0.0.0";
-
-  #  src = fetchGit {
-  #url = "https://github.com/headblockhead/slab-firmware.git";
-  #rev = "b9334c65192a429c707232ab27a862fde68ef982";
-  #submodules = true;
-  #};
-
+  name = "slab-firmware";
   src = ./.;
 
   nativeBuildInputs = [ cmake gnumake gcc-arm-embedded picotool ];
@@ -29,12 +21,14 @@ stdenv.mkDerivation {
     "-DCMAKE_CXX_COMPILER=${gcc-arm-embedded}/bin/arm-none-eabi-g++"
   ];
 
-  installPhase = ''cp -r . $out'';
+  installPhase = ''
+    mkdir -p $out
+    cp {slab.bin,slab.elf,slab.uf2,slab.elf.map,slab.dis} $out
+  '';
 
   meta = with lib; {
     homepage = "https://github.com/headblockhead/slab-firmware";
     description = "Firmware for the slab keyboard.";
-    licencse = licenses.mit;
     platforms = with platforms; linux;
   };
 }

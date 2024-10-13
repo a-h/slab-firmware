@@ -3,9 +3,8 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
     flake-utils.url = "github:numtide/flake-utils";
-    xc.url = "github:joerdav/xc";
   };
-  outputs = { self, nixpkgs, flake-utils, ... }@inputs:
+  outputs = { nixpkgs, flake-utils, ... }:
     flake-utils.lib.eachDefaultSystem
       (system:
         let
@@ -13,7 +12,6 @@
             inherit system;
             overlays = [
               (final: prev: {
-                xc = inputs.xc.packages.x86_64-linux.xc;
                 picotool = pkgs.callPackage ./picotool.nix {
                   pico-sdk = pkgs.callPackage ./pico-sdk.nix { };
                 };

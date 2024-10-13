@@ -23,7 +23,7 @@ stdenv.mkDerivation {
 
   installPhase = ''
     mkdir -p $out
-    cp {*.bin,*.elf,*.uf2,*.elf.map,*.dis} $out
+    cp hackpad/{*.bin,*.elf,*.uf2,*.elf.map,*.dis} $out
   '';
 
   meta = with lib; {

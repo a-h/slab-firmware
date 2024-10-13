@@ -13,13 +13,13 @@ jobs:
     - run: nix build '.?submodules=1#slab-firmware'
     - uses: actions/upload-artifact@v4
       with:
-        name: slab_firmware.uf2
-        path: result/slab_firmware.uf2
+        name: slab-hackpad.uf2
+        path: result/slab-hackpad.uf2
     - uses: actions/upload-artifact@v4
       with:
-        name: slab_firmware.bin
-        path: result/slab_firmware.bin
+        name: slab-left.uf2
+        path: result/slab-left.uf2
     - uses: actions/upload-artifact@v4
       with:
-        name: slab_firmware.elf
-        path: result/slab_firmware.elf
+        name: slab-right.uf2
+        path: result/slab-right.uf2

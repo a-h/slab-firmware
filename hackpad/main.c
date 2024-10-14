@@ -17,6 +17,7 @@
 #include "tusb.h"
 
 // shared
+#include "buzzer.h"
 #include "display.h"
 #include "rgbleds.h"
 #include "slab.h"
@@ -107,7 +108,7 @@ uint16_t lookup_expander2[8] = {
 
 // check_keys reads the values from all the expanders and updates the key
 // states.
-void check_keys() {
+void check_keys(void) {
   static uint16_t inputs1;
   static uint16_t inputs2;
   if (mutex_try_enter(&i2c1_mutex, NULL)) {
@@ -146,7 +147,7 @@ void i2c_devices_init(void) {
 }
 
 // Core 1 deals with the LED strip and OLED display.
-void core1_main() {
+void core1_main(void) {
   flash_safe_execute_core_init(); // Declare we won't use flash on core 1.
   while (true) {
     rgbleds_update(leds, NUM_PIXELS); // Update the LED strip.
@@ -159,7 +160,7 @@ void core1_main() {
 }
 
 // Core 0 deals with keyboard and USB HID.
-void core0_main() {
+void core0_main(void) {
   while (true) {
     check_keys(); // Check the keys on the keyboard for their states.
     tud_task();   // TinyUSB task.
@@ -173,12 +174,14 @@ int main(void) {
   board_init();
   tud_init(BOARD_TUD_RHPORT);
   tusb_init();
+
   // SQUIRREL initialization
   squirrel_init();
 
   make_keys(); // Generate the defualt keymap.
 
   rgbleds_init(GPIO_WS2812, pio0);
+  buzzer_init(GPIO_BUZZER, pio1);
   i2c_devices_init();
 
   multicore_launch_core1(core1_main);

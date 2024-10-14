@@ -1,9 +1,11 @@
 #include "hardware/pio.h"
 #include "ws2812.pio.h"
 
+PIO led_pio;
+
 // put_pixel sends a single set of RGB values to the WS2812 LED strip.
 static inline void put_pixel(uint32_t pixel_grb) {
-  pio_sm_put_blocking(pio0, 0, pixel_grb << 8u);
+  pio_sm_put_blocking(led_pio, 0, pixel_grb << 8u);
 }
 
 // urgb_u32 is a helper function to convert 3 RGB values to a single uint32_t.
@@ -18,8 +20,9 @@ void rgbleds_update(uint8_t leds[], int pixel_count) {
   }
 }
 
-void rgbleds_init(int gpio, PIO led_pio) {
-  uint led_pio_offset = pio_add_program(led_pio, &ws2812_program);
-  uint led_sm = pio_claim_unused_sm(led_pio, true);
-  ws2812_program_init(led_pio, led_sm, led_pio_offset, gpio, 800000, false);
+void rgbleds_init(int gpio, PIO pio) {
+  led_pio = pio;
+  uint offset = pio_add_program(led_pio, &ws2812_program);
+  uint sm = pio_claim_unused_sm(led_pio, true);
+  ws2812_program_init(led_pio, sm, offset, gpio, 800000, false);
 }

@@ -18,6 +18,7 @@
 
 // shared
 #include "buzzer.h"
+#include "communication.h"
 #include "display.h"
 #include "rgbleds.h"
 #include "slab.h"
@@ -127,10 +128,13 @@ void check_keys(void) {
 void i2c_devices_init(void) {
   // Initialize the I2C bus.
   i2c_init(&i2c1_inst, 400000); // 400kHz
+  i2c_init(&i2c0_inst, 400000); // 400kHz
 
   // Configure the I2C pins.
   gpio_set_function(GPIO_I2C1_SDA, GPIO_FUNC_I2C);
   gpio_set_function(GPIO_I2C1_SCL, GPIO_FUNC_I2C);
+  gpio_set_function(GPIO_I2C0_SDA, GPIO_FUNC_I2C);
+  gpio_set_function(GPIO_I2C0_SCL, GPIO_FUNC_I2C);
 
   // Initialize the I2C mutex.
   mutex_init(&i2c1_mutex);
@@ -144,6 +148,9 @@ void i2c_devices_init(void) {
 
   // Initialize the OLED display.
   display_init(&i2c1_inst, ROT_180, 0x3C);
+
+  // Initialize communication with other slab devices.
+  communication_init(&i2c1_inst, &i2c0_inst, 0x17);
 }
 
 // Core 1 deals with the LED strip and OLED display.
@@ -165,6 +172,7 @@ void core0_main(void) {
     check_keys(); // Check the keys on the keyboard for their states.
     tud_task();   // TinyUSB task.
     hid_task();   // Send HID reports to the host.
+    communication_task(&i2c1_mutex); // Send messages to other slab devices.
   }
 }
 

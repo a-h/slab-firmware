@@ -1,13 +1,13 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "hardware/i2c.h"
-#include "pico/mutex.h"
+#include <hardware/i2c.h>
+#include <pico/mutex.h>
+
+#include <squirrel_quantum.h>
+#include <ssd1306.h>
 
 #include "display.h"
-
-#include "squirrel_quantum.h"
-#include "ssd1306.h"
 
 ssd1306_t display;
 

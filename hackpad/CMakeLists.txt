@@ -11,6 +11,7 @@ target_sources(slab-hackpad PUBLIC
         ${PROJECT_SOURCE_DIR}/shared/tinyusb/usb_descriptors.c
         ${PROJECT_SOURCE_DIR}/shared/tinyusb/tinyusb_openrgb.c
         ${PROJECT_SOURCE_DIR}/shared/display/display.c
+        ${PROJECT_SOURCE_DIR}/shared/communication/communication.c
         ${PROJECT_SOURCE_DIR}/shared/buzzer/buzzer.c
         ${PROJECT_SOURCE_DIR}/shared/rgbleds/rgbleds.c
         ${CMAKE_CURRENT_LIST_DIR}/keymap.c
@@ -22,6 +23,7 @@ target_include_directories(slab-hackpad PUBLIC
         ${PROJECT_SOURCE_DIR}/shared/rgbleds
         ${PROJECT_SOURCE_DIR}/shared/buzzer
         ${PROJECT_SOURCE_DIR}/shared/display
+        ${PROJECT_SOURCE_DIR}/shared/communication
         ${PROJECT_SOURCE_DIR}/shared
         )
 
@@ -40,6 +42,7 @@ target_link_libraries(slab-hackpad
         hardware_i2c 
         squirrel 
         pico_pca9555 
+        pico_i2c_slave
         hardware_pio 
         pico_flash 
         hardware_exception 

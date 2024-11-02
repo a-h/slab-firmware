@@ -57,7 +57,7 @@ void interaction(void) {
 // check_keys reads the values from all the expanders and updates the key
 // states.
 void check_keys(void) {
-  if (keyboard_keycodes[HID_KEY_A]) {
+  if (keyboard_keycodes[HID_KEY_B]) {
     gpio_put(17, 1);
   } else {
     gpio_put(17, 0);

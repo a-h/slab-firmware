@@ -6,8 +6,7 @@
 #include <pico/stdlib.h>
 
 enum com_type {
-  COM_TYPE_COMMIT = 5,
-  COM_TYPE_KEYBOARD_KEYCODE,
+  COM_TYPE_KEYBOARD_KEYCODE = 1,
   COM_TYPE_KEYBOARD_MODIFIER,
   COM_TYPE_CONSUMER,
 };

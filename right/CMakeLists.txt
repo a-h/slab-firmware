@@ -1,5 +1,13 @@
 add_compile_definitions(SQUIRREL_KEYCOUNT=30)
 
+include_directories(${PROJECT_SOURCE_DIR}/external/squirrel/include) # Include SQUIRREL headers in target and dependencies.
+add_subdirectory(${PROJECT_SOURCE_DIR}/external/squirrel squirrel) # Add SQUIRREL as a subdirectory. This will build the library.
+
+include_directories(${PROJECT_SOURCE_DIR}/external/pico_pca9555/include) # Include PCA9555 headers in target and dependencies.
+add_subdirectory(${PROJECT_SOURCE_DIR}/external/pico_pca9555 pico_pca9555) # Add PCA9555 as a subdirectory. This will build the library.
+
+include_directories(${PROJECT_SOURCE_DIR}/external/pico-ssd1306) # Include SSD1306 headers in target and dependencies.
+
 add_executable(slab-right
         ${CMAKE_CURRENT_LIST_DIR}/main.c
         # The SSD1306 library does not have a cmake file, so we have to add the source files manually.

@@ -120,44 +120,37 @@ int last_key = -1;
 // states.
 void check_keys(void) {
   // inputs1 and inputs2 store the values read from the two expanders.
-  static uint16_t inputs1;
-  static uint16_t inputs2;
+  uint16_t inputs1 = 0;
+  uint16_t inputs2 = 0;
   // inputs3 is a 32-bit integer that stores the values of both inputs 1 and 2.
-  static uint32_t inputs3;
-
-  inputs1 = 0;
-  inputs2 = 0;
-  inputs3 = 0;
+  uint32_t inputs3 = 0;
 
   if (mutex_try_enter(&i2c1_mutex, NULL)) {
     inputs1 = pca9555_read_input(&i2c1_inst, I2C1_EXPANDER1);
     inputs2 = pca9555_read_input(&i2c1_inst, I2C1_EXPANDER2);
     mutex_exit(&i2c1_mutex);
   }
+
   inputs3 = (inputs2 << 16) | inputs1;
 
   for (int i = 0; i < 30; i++) {
     if (inputs3 & lookup_expanders[i]) {
       last_key = i;
-      interaction();
-      keyboard_activate_keycode(HID_KEY_5);
-    } else {
-      keyboard_deactivate_keycode(HID_KEY_5);
     }
-    /*check_key(i, inputs3 & lookup_expanders[i]);*/
+    check_key(i, inputs3 & lookup_expanders[i]);
   }
 }
 
 void i2c_devices_init(void) {
   // Initialize the I2C bus.
   i2c_init(&i2c1_inst, 400000); // 400kHz
-  i2c_init(&i2c0_inst, 400000); // 400kHz
+  /*i2c_init(&i2c0_inst, 400000); // 400kHz*/
 
   // Configure the I2C pins.
   gpio_set_function(GPIO_I2C1_SDA, GPIO_FUNC_I2C);
   gpio_set_function(GPIO_I2C1_SCL, GPIO_FUNC_I2C);
-  gpio_set_function(GPIO_I2C0_SDA, GPIO_FUNC_I2C);
-  gpio_set_function(GPIO_I2C0_SCL, GPIO_FUNC_I2C);
+  /*gpio_set_function(GPIO_I2C0_SDA, GPIO_FUNC_I2C);*/
+  /*gpio_set_function(GPIO_I2C0_SCL, GPIO_FUNC_I2C);*/
 
   // Initialize the I2C mutex.
   mutex_init(&i2c1_mutex);
@@ -199,8 +192,8 @@ void core1_main(void) {
 void core0_main(void) {
   while (true) {
     check_keys(); // Check the keys on the keyboard for their states.
-    hid_task();   // Send HID reports to the host.
     tud_task();   // TinyUSB task.
+    hid_task();   // Send HID reports to the host.
     /*communication_task(&i2c1_mutex); // Send messages to other slab devices.*/
   }
 }
@@ -210,18 +203,18 @@ int main(void) {
   // TinyUSB initialization
   board_init();
   tud_init(BOARD_TUD_RHPORT);
-  tusb_init();
-  squirrel_init();
+  if (board_init_after_tusb) {
+    board_init_after_tusb();
+  }
 
+  squirrel_init();
   make_keys(); // Generate the defualt keymap.
 
   /*rgbleds_init(GPIO_WS2812, pio0);*/
   /*buzzer_init(GPIO_BUZZER);*/
   /*buzzer_play(0);*/
-
-  i2c_devices_init();
-
   /*stdio_uart_init_full(uart0, 115200, GPIO_UART_TX, GPIO_UART_RX);*/
+  i2c_devices_init();
 
   multicore_launch_core1(core1_main);
   core0_main();

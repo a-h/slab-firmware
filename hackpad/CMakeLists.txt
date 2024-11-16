@@ -29,7 +29,6 @@ target_include_directories(slab-hackpad PUBLIC
 
 # Generate the PIO header files
 pico_generate_pio_header(slab-hackpad ${PROJECT_SOURCE_DIR}/shared/pio/ws2812.pio)
-pico_generate_pio_header(slab-hackpad ${PROJECT_SOURCE_DIR}/shared/pio/pwm.pio)
 
 # Pull in common dependencies
 target_link_libraries(slab-hackpad
@@ -37,6 +36,7 @@ target_link_libraries(slab-hackpad
         pico_unique_id
         tinyusb_device 
         tinyusb_board 
+        hardware_pwm
         pico_multicore 
         hardware_gpio 
         hardware_i2c 

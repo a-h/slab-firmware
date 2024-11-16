@@ -17,7 +17,6 @@
 #include "tusb.h"
 
 // shared
-#include "buzzer.h"
 #include "communication.h"
 #include "display.h"
 #include "rgbleds.h"
@@ -189,7 +188,6 @@ int main(void) {
   make_keys(); // Generate the defualt keymap.
 
   rgbleds_init(GPIO_WS2812, pio0);
-  buzzer_init(GPIO_BUZZER, pio1);
   i2c_devices_init();
 
   multicore_launch_core1(core1_main);

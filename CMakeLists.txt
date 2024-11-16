@@ -40,7 +40,6 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/external/pico_pca9555) # Add PCA9555 as a
 
 include_directories(${PROJECT_SOURCE_DIR}/external/pico-ssd1306) # Include SSD1306 headers in target and dependencies.
 
-add_subdirectory(demo)
-add_subdirectory(left)
+#add_subdirectory(left)
 add_subdirectory(right)
 add_subdirectory(hackpad)

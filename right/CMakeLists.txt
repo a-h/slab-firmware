@@ -29,11 +29,12 @@ target_include_directories(slab-right PUBLIC
 
 # Generate the PIO header files
 pico_generate_pio_header(slab-right ${PROJECT_SOURCE_DIR}/shared/pio/ws2812.pio)
-pico_generate_pio_header(slab-right ${PROJECT_SOURCE_DIR}/shared/pio/pwm.pio)
 
 # Pull in common dependencies
 target_link_libraries(slab-right
         pico_stdlib
+        hardware_clocks
+        hardware_pwm
         pico_unique_id
         tinyusb_device 
         tinyusb_board 

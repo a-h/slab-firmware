@@ -118,11 +118,10 @@ uint32_t lookup_expanders[30] = {
 // states.
 void check_keys(void) {
   // inputs1 and inputs2 store the values read from the two expanders.
-  static uint16_t inputs1 = 0;
-  static uint16_t inputs2 = 0;
-
+  uint16_t inputs1 = 0;
+  uint16_t inputs2 = 0;
   // inputs3 is a 32-bit integer that stores the values of both inputs 1 and 2.
-  static uint32_t inputs3 = 0;
+  uint32_t inputs3 = 0;
 
   if (mutex_try_enter(&i2c1_mutex, NULL)) {
     pca9555_read_input(&i2c1_inst, I2C1_EXPANDER1, &inputs1);
@@ -131,12 +130,11 @@ void check_keys(void) {
     inputs3 = (inputs2 << 16) | inputs1;
   };
 
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < 30; i++) {
     if (inputs3 & lookup_expanders[i]) {
       interaction();
     }
     check_key(i, inputs3 & lookup_expanders[i]);
-    printf("key %d: %d\n", i, inputs3 & lookup_expanders[i]);
   }
 }
 
@@ -206,14 +204,12 @@ int main(void) {
   make_keys(); // Generate the defualt keymap.
 
   rgbleds_init(GPIO_WS2812, pio0);
-  /*buzzer_init(GPIO_BUZZER, pio1);*/
+  buzzer_init(GPIO_BUZZER);
+  buzzer_play(0);
+
   i2c_devices_init();
 
-  gpio_init(GPIO_UART_TX);
-  gpio_init(GPIO_UART_RX);
-  gpio_set_function(GPIO_UART_TX, GPIO_FUNC_UART);
-  gpio_set_function(GPIO_UART_RX, GPIO_FUNC_UART);
-  uart_init(uart0, 115200);
+  /*stdio_uart_init_full(uart0, 115200, GPIO_UART_TX, GPIO_UART_RX);*/
 
   multicore_launch_core1(core1_main);
   core0_main();

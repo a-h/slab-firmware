@@ -1,19 +1,38 @@
-#include "hardware/pio.h"
-#include "pwm.pio.h"
+#include "hardware/clocks.h"
+#include "hardware/pwm.h"
+#include "pico/stdlib.h"
 
-PIO buzzer_pio;
-uint buzzer_sm;
+#include "hardware/pwm.h"
+#include "pico/stdlib.h"
+#include "pico/time.h"
+#include <stdio.h>
 
-void buzzer_init(int gpio, PIO pio) {
-  uint offset = pio_add_program(pio, &pwm_program);
-  buzzer_sm = pio_claim_unused_sm(pio, true);
-  pwm_program_init(pio, buzzer_sm, offset, gpio);
+unsigned short slice_num = 0;
+
+void buzzer_init(int gpio) {
+  gpio_set_function(gpio, GPIO_FUNC_PWM);
+  pwm_config config = pwm_get_default_config();
+  pwm_config_set_clkdiv(&config, 100.f);
+  slice_num = pwm_gpio_to_slice_num(gpio);
+  pwm_init(slice_num, &config, true);
 }
 
-void buzzer_set_frequency(int frequency) {
-  pio_sm_set_enabled(buzzer_pio, buzzer_sm, false);
-  pio_sm_put_blocking(buzzer_pio, buzzer_sm, frequency);
-  pio_sm_exec(buzzer_pio, buzzer_sm, pio_encode_pull(false, false));
-  pio_sm_exec(buzzer_pio, buzzer_sm, pio_encode_out(pio_isr, 32));
-  pio_sm_set_enabled(buzzer_pio, buzzer_sm, true);
+static inline void pwm_calcDivTop(pwm_config *c, int frequency, int sysClock) {
+  uint count = sysClock * 16 / frequency;
+  uint div = count / 60000; // to be lower than 65535*15/16 (rounding error)
+  if (div < 16)
+    div = 16;
+  c->div = div;
+  c->top = count / div;
+}
+
+void buzzer_play(unsigned short frequency) {
+  pwm_config cfg = pwm_get_default_config();
+  if (frequency == 0)
+    pwm_set_chan_level(slice_num, PWM_CHAN_A, 0);
+  else {
+    pwm_calcDivTop(&cfg, frequency, 125000000);
+    pwm_init(slice_num, &cfg, true);
+    pwm_set_chan_level(slice_num, PWM_CHAN_A, cfg.top / 2);
+  }
 }

@@ -42,8 +42,5 @@ void make_keys(void) {
   layers[0].keys[28] = keyboard(HID_KEY_GUI_RIGHT);
   layers[0].keys[29] = keyboard(HID_KEY_POWER);
 
-  for (int i = 0; i < 16; i++) {
-    layers[i].active = false;
-  }
   layers[0].active = true;
 };

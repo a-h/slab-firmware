@@ -11,7 +11,6 @@ target_sources(slab-right PUBLIC
         ${PROJECT_SOURCE_DIR}/shared/tinyusb/usb_descriptors.c
         ${PROJECT_SOURCE_DIR}/shared/tinyusb/tinyusb_openrgb.c
         ${PROJECT_SOURCE_DIR}/shared/display/display.c
-        ${PROJECT_SOURCE_DIR}/shared/communication/communication.c
         ${PROJECT_SOURCE_DIR}/shared/buzzer/buzzer.c
         ${PROJECT_SOURCE_DIR}/shared/rgbleds/rgbleds.c
         ${CMAKE_CURRENT_LIST_DIR}/keymap.c
@@ -23,7 +22,6 @@ target_include_directories(slab-right PUBLIC
         ${PROJECT_SOURCE_DIR}/shared/rgbleds
         ${PROJECT_SOURCE_DIR}/shared/buzzer
         ${PROJECT_SOURCE_DIR}/shared/display
-        ${PROJECT_SOURCE_DIR}/shared/communication
         ${PROJECT_SOURCE_DIR}/shared
         )
 
@@ -33,7 +31,6 @@ pico_generate_pio_header(slab-right ${PROJECT_SOURCE_DIR}/shared/pio/ws2812.pio)
 # Pull in common dependencies
 target_link_libraries(slab-right
         pico_stdlib
-        hardware_clocks
         hardware_pwm
         pico_unique_id
         tinyusb_device 

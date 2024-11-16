@@ -17,7 +17,7 @@
 #include "tusb.h"
 
 // shared
-#include "communication.h"
+/*#include "communication.h"*/
 #include "display.h"
 #include "rgbleds.h"
 #include "slab.h"
@@ -112,8 +112,8 @@ void check_keys(void) {
   static uint16_t inputs1;
   static uint16_t inputs2;
   if (mutex_try_enter(&i2c1_mutex, NULL)) {
-    pca9555_read_input(&i2c1_inst, I2C1_EXPANDER1, &inputs1);
-    pca9555_read_input(&i2c1_inst, I2C1_EXPANDER2, &inputs2);
+    inputs1 = pca9555_read_input(&i2c1_inst, I2C1_EXPANDER1);
+    inputs2 = pca9555_read_input(&i2c1_inst, I2C1_EXPANDER2);
     mutex_exit(&i2c1_mutex);
   };
   for (int i = 0; i < 12; i++) {
@@ -149,7 +149,7 @@ void i2c_devices_init(void) {
   display_init(&i2c1_inst, ROT_180, 0x3C);
 
   // Initialize communication with other slab devices.
-  communication_init(&i2c1_inst, &i2c0_inst, 0x17);
+  /*communication_init(&i2c1_inst, &i2c0_inst, 0x17);*/
 }
 
 // Core 1 deals with the LED strip and OLED display.
@@ -171,7 +171,7 @@ void core0_main(void) {
     check_keys(); // Check the keys on the keyboard for their states.
     tud_task();   // TinyUSB task.
     hid_task();   // Send HID reports to the host.
-    communication_task(&i2c1_mutex); // Send messages to other slab devices.
+    /*communication_task(&i2c1_mutex); // Send messages to other slab devices.*/
   }
 }
 

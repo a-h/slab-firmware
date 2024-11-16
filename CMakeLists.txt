@@ -42,4 +42,4 @@ include_directories(${PROJECT_SOURCE_DIR}/external/pico-ssd1306) # Include SSD13
 
 #add_subdirectory(left)
 add_subdirectory(right)
-add_subdirectory(hackpad)
+#add_subdirectory(hackpad)

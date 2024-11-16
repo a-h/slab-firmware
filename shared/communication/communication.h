@@ -6,7 +6,8 @@
 #include <pico/stdlib.h>
 
 enum com_type {
-  COM_TYPE_SQUIRREL = 1,
+  COM_TYPE_SQUIRREL = 1, // SQUIRREL data (keycodes, modifiers, etc.)
+  COM_TYPE_START,
 };
 
 void communication_init(i2c_inst_t *master_i2c_inst, i2c_inst_t *slave_i2c_inst,

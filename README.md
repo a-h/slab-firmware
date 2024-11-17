@@ -9,6 +9,9 @@ This project uses [Nix](https://nixos.org), run `nix develop` for a development 
 
 ## Tasks
 
+> [!IMPORTANT]
+> You must be in the `nix develop` shell for these tasks to work!
+
 ### upload
 Directory: ./build
 Requires: build

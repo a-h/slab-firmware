@@ -26,7 +26,18 @@
         rec {
           devShells.default = pkgs.mkShell {
             buildInputs = with pkgs; [
+              xc
+              cmake
+              gcc-arm-embedded
+              picotool
+              python39
             ];
+            env = {
+              PICO_SDK_PATH = "${pkgs.pico-sdk}/lib/pico-sdk";
+              SQUIRREL_PATH = "${squirrel.outputs.packages.${system}.squirrel.src}";
+              PCA9555_PATH = "${pico_pca9555.outputs.packages.${system}.pico_pca9555.src}";
+              SSD1306_PATH = "${pico-ssd1306.outputs.packages.${system}.pico-ssd1306.src}";
+            };
           };
           packages.slab-firmware = pkgs.stdenv.mkDerivation {
             name = "slab-firmware";
@@ -37,8 +48,6 @@
               gcc-arm-embedded
               picotool
               python39
-
-              pkg-config
             ];
             cmakeFlags = [
               "-DCMAKE_C_COMPILER=${pkgs.gcc-arm-embedded}/bin/arm-none-eabi-gcc"

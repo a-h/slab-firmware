@@ -1,4 +1,7 @@
 # Slab Firmware
+
+![Nix Flake](https://img.shields.io/badge/NIX%20FLAKE-5277C3.svg?logo=NixOS&logoColor=white) [![xc compatible](https://xcfile.dev/badge.svg)](https://xcfile.dev)
+
 The full firmware and downloads for the [Slab keyboard project](https://github.com/headblockhead/slab).
 
 Downloads are in the releases section.

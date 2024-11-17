@@ -114,30 +114,28 @@ uint32_t lookup_expanders[30] = {
     0b00100000000000000000000000000000, // 30
 };
 
-int last_key = -1;
-
 // check_keys reads the values from all the expanders and updates the key
 // states.
 void check_keys(void) {
   // inputs1 and inputs2 store the values read from the two expanders.
-  uint16_t inputs1 = 0;
-  uint16_t inputs2 = 0;
-  // inputs3 is a 32-bit integer that stores the values of both inputs 1 and 2.
-  uint32_t inputs3 = 0;
+  static uint16_t inputs1;
+  static uint16_t inputs2;
 
   if (mutex_try_enter(&i2c1_mutex, NULL)) {
     inputs1 = pca9555_read_input(&i2c1_inst, I2C1_EXPANDER1);
     inputs2 = pca9555_read_input(&i2c1_inst, I2C1_EXPANDER2);
     mutex_exit(&i2c1_mutex);
-  }
 
-  inputs3 = (inputs2 << 16) | inputs1;
+    // inputs3 is a 32-bit integer that stores the values of both inputs 1
+    // and 2.
+    uint32_t inputs3 = (inputs2 << 16) | inputs1;
 
-  for (int i = 0; i < 30; i++) {
-    if (inputs3 & lookup_expanders[i]) {
-      last_key = i;
+    for (int i = 0; i < 30; i++) {
+      if (inputs3 & lookup_expanders[i]) {
+        interaction();
+      }
+      check_key(i, inputs3 & lookup_expanders[i]);
     }
-    check_key(i, inputs3 & lookup_expanders[i]);
   }
 }
 
@@ -175,13 +173,9 @@ void i2c_devices_init(void) {
 void core1_main(void) {
   flash_safe_execute_core_init(); // Declare we won't use flash on core 1.
   while (true) {
-    /*rgbleds_update(leds, NUM_PIXELS); // Update the LED strip.*/
-    /*display_render(board_millis() - last_interaction > idle_timeout,*/
-    /*board_millis()); // Write the display buffer.*/
-    ssd1306_clear(&display);
-    char buffer[20];
-    snprintf(buffer, 20, "Last key: %d", last_key);
-    ssd1306_draw_string(&display, 0, 0, 1, buffer);
+    rgbleds_update(leds, NUM_PIXELS); // Update the LED strip.
+    display_render(board_millis() - last_interaction > idle_timeout,
+                   board_millis()); // Write the display buffer.
     display_draw(&i2c1_mutex); // Sends the display buffer to the OLED. This
     // will hang until the I2C bus is available -
     // usually fast enough.
@@ -210,10 +204,10 @@ int main(void) {
   squirrel_init();
   make_keys(); // Generate the defualt keymap.
 
-  /*rgbleds_init(GPIO_WS2812, pio0);*/
-  /*buzzer_init(GPIO_BUZZER);*/
-  /*buzzer_play(0);*/
-  /*stdio_uart_init_full(uart0, 115200, GPIO_UART_TX, GPIO_UART_RX);*/
+  rgbleds_init(GPIO_WS2812, pio0);
+  buzzer_init(GPIO_BUZZER);
+  buzzer_play(0);
+  stdio_uart_init_full(uart0, 115200, GPIO_UART_TX, GPIO_UART_RX);
   i2c_devices_init();
 
   multicore_launch_core1(core1_main);

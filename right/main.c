@@ -64,7 +64,7 @@ uint64_t last_interaction = 0;
 
 // idle_timeout is the amount of time in milliseconds before the user is
 // considered AFK. Set to UINT64_MAX to disable (585 million years).
-uint64_t idle_timeout = 3000;
+uint64_t idle_timeout = 15000;
 
 #define NUM_PIXELS 31 // 30 keys + 1 LED under the encoder.
 // leds stores the R, G, and B values for each LED in the LED strip.
@@ -126,15 +126,13 @@ void check_keys(void) {
     inputs2 = pca9555_read_input(&i2c1_inst, I2C1_EXPANDER2);
     mutex_exit(&i2c1_mutex);
 
-    // inputs3 is a 32-bit integer that stores the values of both inputs 1
-    // and 2.
-    uint32_t inputs3 = (inputs2 << 16) | inputs1;
+    uint32_t inputs_combined = (inputs2 << 16) | inputs1;
 
     for (int i = 0; i < 30; i++) {
-      if (inputs3 & lookup_expanders[i]) {
+      if (inputs_combined & lookup_expanders[i]) {
         interaction();
       }
-      check_key(i, inputs3 & lookup_expanders[i]);
+      check_key(i, inputs_combined & lookup_expanders[i]);
     }
   }
 }

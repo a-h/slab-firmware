@@ -5,23 +5,22 @@
 #include "pico/multicore.h"
 
 // squirrel
-#include "squirrel_init.h"
-#include "squirrel_quantum.h"
+#include <squirrel_init.h>
+#include <squirrel_quantum.h>
 
 // keymap
 #include "keymap.h"
 
 // libraries
-#include "pico_pca9555.h"
 #include "ssd1306.h"
 #include "tusb.h"
+#include <pico_pca9555.h>
 
 // shared
-#include "buzzer.h"
+#include <buzzer.h>
 /*#include "communication.h"*/
 #include "display.h"
 #include "rgbleds.h"
-#include "slab.h"
 #include "tinyusb_squirrel.h"
 #include "tusb_config.h"
 #include "usb_descriptors.h"

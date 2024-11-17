@@ -5,7 +5,7 @@ Downloads are in the releases section.
 
 ## Building
 
-This project uses [Nix](https://nixos.org), run `nix develop` for a development environmnt, `nix build '.?submodules=1#slab-firmware'` to build the firmware and use `nix flake check` to check tests are passing.
+This project uses [Nix](https://nixos.org), run `nix develop` for a development environmnt, `nix build` to build the firmware and use `nix flake check` to check tests are passing.
 
 ## Tasks
 

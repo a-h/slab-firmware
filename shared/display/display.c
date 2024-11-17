@@ -11,7 +11,8 @@
 
 ssd1306_t display;
 
-void display_init(i2c_inst_t *i2c_inst, rotation_t rotation, uint8_t addr) {
+void display_init(i2c_inst_t *i2c_inst, ssd1306_rotation_t rotation,
+                  uint8_t addr) {
   ssd1306_init(&display, 128, 32, addr, i2c_inst);
   ssd1306_set_rotation(&display, rotation);
 }

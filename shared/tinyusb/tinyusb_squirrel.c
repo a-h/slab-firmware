@@ -3,31 +3,26 @@
 #include "tusb.h"
 #include "usb_descriptors.h"
 
-#include "squirrel_consumer.h"
-#include "squirrel_keyboard.h"
-
-#include "slab.h"
+#include <squirrel_consumer.h>
+#include <squirrel_keyboard.h>
 
 // send_hid_kbd_codes sends a HID report with the given keycodes to the host.
-enum slab_err send_hid_kbd_codes(uint8_t keycode_assembly[6],
-                                 uint8_t modifiers) {
+void send_hid_kbd_codes(uint8_t keycode_assembly[6], uint8_t modifiers) {
   if (!tud_hid_ready()) {
     // Don't send if HID is not ready.
-    return SLAB_HID_NOT_READY;
+    return;
   };
   // Send the currently active keycodes and modifiers to the host.
   tud_hid_keyboard_report(REPORT_ID_KEYBOARD, modifiers, keycode_assembly);
-  return SLAB_NOERR;
 }
 
-enum slab_err send_hid_no_keycodes(uint8_t modifiers) {
+void send_hid_no_keycodes(uint8_t modifiers) {
   if (!tud_hid_ready()) {
     // Don't send if HID is not ready.
-    return SLAB_HID_NOT_READY;
+    return;
   };
   // Send the currently active keycodes and modifiers to the host.
   tud_hid_keyboard_report(REPORT_ID_KEYBOARD, modifiers, NULL);
-  return SLAB_NOERR;
 }
 
 // Every 10ms, we will send 1 HID report (per device) to the host.

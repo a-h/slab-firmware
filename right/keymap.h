@@ -1,4 +1,4 @@
 #pragma once
-#include "squirrel.h"
+#include <squirrel.h>
 
 void make_keys(void);

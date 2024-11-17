@@ -1,9 +1,6 @@
 #include "hardware/clocks.h"
 #include "hardware/pwm.h"
 #include "pico/stdlib.h"
-
-#include "hardware/pwm.h"
-#include "pico/stdlib.h"
 #include "pico/time.h"
 #include <stdio.h>
 

@@ -8,13 +8,10 @@
 #include "squirrel_consumer.h"
 #include "squirrel_keyboard.h"
 
-#include "slab.h"
-
 // send_hid_kbd_codes sends a HID report with the given keycodes to the host.
-enum slab_err send_hid_kbd_codes(uint8_t keycode_assembly[6],
-                                 uint8_t modifiers);
+void send_hid_kbd_codes(uint8_t keycode_assembly[6], uint8_t modifiers);
 
-enum slab_err send_hid_no_keycodes(uint8_t modifiers);
+void send_hid_no_keycodes(uint8_t modifiers);
 
 // Every 10ms, we will send 1 HID report (per device) to the host.
 // First, the keyboard. Subsequent reports will be sent in the

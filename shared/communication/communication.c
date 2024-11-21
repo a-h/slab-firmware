@@ -8,7 +8,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <tusb.h>
 
 #include "communication.h"
 
@@ -29,6 +28,8 @@ uint8_t squirrel_request_buf[9];
 uint8_t squirrel_request_buf_index = 0;
 
 bool starter = true;
+
+bool hasUSB = false;
 
 static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
   switch (event) {
@@ -60,7 +61,7 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
     }
 
     // if we have usb, send 1.
-    if (tud_connected()) {
+    if (hasUSB) {
       printf("C");
       i2c_write_byte_raw(i2c, 1);
       break;
@@ -133,9 +134,11 @@ void communication_init(i2c_inst_t *master_i2c, i2c_inst_t *slave_i2c,
 uint8_t squirrel_send_buf[9] = {0};
 uint8_t i2c_send_buf[10] = {COM_TYPE_SQUIRREL};
 
-void communication_task(mutex_t *i2c_mutex) {
+void communication_task(mutex_t *i2c_mutex, bool usb_present) {
   get_packet(&squirrel_send_buf);
   memcpy(i2c_send_buf + 1, squirrel_send_buf, 9);
+
+  hasUSB = usb_present;
 
   /*mutex_enter_blocking(i2c_mutex);*/
   if (master_tells_slave) {

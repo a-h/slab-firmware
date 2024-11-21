@@ -1,9 +1,10 @@
 add_compile_definitions(SQUIRREL_KEYCOUNT=30)
 
+add_subdirectory(${PROJECT_SOURCE_DIR}/shared/tinyusb tinyusb)
 add_subdirectory(${PROJECT_SOURCE_DIR}/shared/buzzer buzzer)
 add_subdirectory(${PROJECT_SOURCE_DIR}/shared/display display)
 add_subdirectory(${PROJECT_SOURCE_DIR}/shared/rgbleds rgbleds)
-add_subdirectory(${PROJECT_SOURCE_DIR}/shared/tinyusb tinyusb)
+add_subdirectory(${PROJECT_SOURCE_DIR}/shared/communication communication)
 
 add_executable(slab-right
         ${CMAKE_CURRENT_LIST_DIR}/main.c
@@ -32,6 +33,7 @@ target_link_libraries(slab-right
         buzzer
         display
         slab_tinyusb
+        communication
         rgbleds
 
         pico_stdlib

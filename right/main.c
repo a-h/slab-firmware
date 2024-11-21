@@ -18,7 +18,7 @@
 
 // shared
 #include <buzzer.h>
-/*#include "communication.h"*/
+#include <communication.h>
 #include <display.h>
 #include <rgbleds.h>
 #include <tinyusb_squirrel.h>
@@ -185,7 +185,8 @@ void core0_main(void) {
     check_keys(); // Check the keys on the keyboard for their states.
     tud_task();   // TinyUSB task.
     hid_task();   // Send HID reports to the host.
-    /*communication_task(&i2c1_mutex); // Send messages to other slab devices.*/
+    communication_task(&i2c1_mutex,
+                       tud_connected()); // Send messages to other slab devices.
   }
 }
 

@@ -13,4 +13,4 @@ enum com_type {
 void communication_init(i2c_inst_t *master_i2c_inst, i2c_inst_t *slave_i2c_inst,
                         uint8_t addr);
 
-void communication_task(mutex_t *i2c_mutex);
+void communication_task(mutex_t *i2c_mutex, bool usb_present);

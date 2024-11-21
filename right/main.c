@@ -1,8 +1,8 @@
 // pico SDK
-#include "hardware/flash.h"
-#include "hardware/pio.h"
-#include "pico/flash.h"
-#include "pico/multicore.h"
+#include <hardware/flash.h>
+#include <hardware/pio.h>
+#include <pico/flash.h>
+#include <pico/multicore.h>
 
 // squirrel
 #include <squirrel_init.h>
@@ -12,18 +12,18 @@
 #include "keymap.h"
 
 // libraries
-#include "ssd1306.h"
-#include "tusb.h"
 #include <pico_pca9555.h>
+#include <ssd1306.h>
+#include <tusb.h>
 
 // shared
 #include <buzzer.h>
 /*#include "communication.h"*/
-#include "display.h"
-#include "rgbleds.h"
-#include "tinyusb_squirrel.h"
-#include "tusb_config.h"
-#include "usb_descriptors.h"
+#include <display.h>
+#include <rgbleds.h>
+#include <tinyusb_squirrel.h>
+#include <tusb_config.h>
+#include <usb_descriptors.h>
 
 // on I2C0, we are a slave
 #define GPIO_I2C0_SDA 28

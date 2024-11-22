@@ -163,7 +163,7 @@ void i2c_devices_init(void) {
   display_init(&i2c1_inst, ROT_180, 0x3C);
 
   // Initialize communication with other slab devices.
-  /*communication_init(&i2c1_inst, &i2c0_inst, 0x17);*/
+  communication_init(&i2c1_inst, &i2c0_inst);
 }
 
 // Core 1 deals with the LED strip and OLED display.
@@ -186,7 +186,7 @@ void core0_main(void) {
     tud_task();   // TinyUSB task.
     hid_task();   // Send HID reports to the host.
     communication_task(&i2c1_mutex,
-                       tud_connected()); // Send messages to other slab devices.
+                       true); // Send messages to other slab devices.
   }
 }
 
@@ -207,6 +207,9 @@ int main(void) {
   buzzer_play(0);
   stdio_uart_init_full(uart0, 115200, GPIO_UART_TX, GPIO_UART_RX);
   i2c_devices_init();
+
+  gpio_init(17);
+  gpio_set_dir(17, GPIO_OUT);
 
   multicore_launch_core1(core1_main);
   core0_main();

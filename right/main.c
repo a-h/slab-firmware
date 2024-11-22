@@ -21,6 +21,7 @@
 #include <communication.h>
 #include <display.h>
 #include <rgbleds.h>
+#include <slider.h>
 #include <tinyusb_squirrel.h>
 #include <tusb_config.h>
 #include <usb_descriptors.h>
@@ -160,7 +161,10 @@ void i2c_devices_init(void) {
   pca9555_input_inversion(&i2c1_inst, I2C1_EXPANDER2, 0xFFFF);
 
   // Initialize the OLED display.
-  display_init(&i2c1_inst, ROT_180, 0x3C);
+  display_init(&i2c1_inst, ROT_180, I2C1_OLED);
+
+  // Initialize the slider
+  slider_init(&i2c1_inst, I2C1_ADC);
 
   // Initialize communication with other slab devices.
   communication_init(&i2c1_inst, &i2c0_inst);
@@ -173,6 +177,11 @@ void core1_main(void) {
     rgbleds_update(leds, NUM_PIXELS); // Update the LED strip.
     display_render(board_millis() - last_interaction > idle_timeout,
                    board_millis()); // Write the display buffer.
+
+    char buf[5];
+    sprintf(buf, "%d", slider_value);
+    ssd1306_draw_string(&display, 32, 0, 1, buf);
+
     display_draw(&i2c1_mutex); // Sends the display buffer to the OLED. This
     // will hang until the I2C bus is available -
     // usually fast enough.
@@ -185,6 +194,7 @@ void core0_main(void) {
     check_keys(); // Check the keys on the keyboard for their states.
     tud_task();   // TinyUSB task.
     hid_task();   // Send HID reports to the host.
+    slider_task(&i2c1_mutex);
     communication_task(&i2c1_mutex,
                        true); // Send messages to other slab devices.
   }

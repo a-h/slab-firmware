@@ -1,6 +1,6 @@
 # Slab Firmware
 
-![Nix Flake](https://img.shields.io/badge/NIX%20FLAKE-5277C3.svg?logo=NixOS&logoColor=white) [![xc compatible](https://xcfile.dev/badge.svg)](https://xcfile.dev) [![Hackatime](https://waka.hackclub.com/api/badge/U07BMNNGUN9/interval:any/project:slab-firmware)]
+[![Nix Flake](https://img.shields.io/badge/NIX%20FLAKE-5277C3.svg?logo=NixOS&logoColor=white)](https://nixos.org) [![xc compatible](https://xcfile.dev/badge.svg)](https://xcfile.dev) [![Hackatime](https://waka.hackclub.com/api/badge/U07BMNNGUN9/interval:any/project:slab-firmware)](https://waka.hackclub.com)
 
 The full firmware and downloads for the [Slab keyboard project](https://github.com/headblockhead/slab).
 

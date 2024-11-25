@@ -40,7 +40,7 @@ void make_keys(void) {
   layers[0].keys[26] = keyboard_modifier(HID_KEY_ALT_LEFT);
   layers[0].keys[27] = layer_momentary(2);
   layers[0].keys[28] = layer_momentary(1);
-  layers[0].keys[29] = keyboard(HID_KEY_SPACE);
+  layers[0].keys[29] = keyboard(HID_KEY_RETURN);
 
   layers[0].active = true;
 };

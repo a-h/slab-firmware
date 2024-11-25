@@ -141,13 +141,18 @@ void check_keys(void) {
 void i2c_devices_init(void) {
   // Initialize the I2C bus.
   i2c_init(&i2c1_inst, 400000); // 400kHz
-  /*i2c_init(&i2c0_inst, 400000); // 400kHz*/
+  i2c_init(&i2c0_inst, 400000); // 400kHz
 
   // Configure the I2C pins.
   gpio_set_function(GPIO_I2C1_SDA, GPIO_FUNC_I2C);
   gpio_set_function(GPIO_I2C1_SCL, GPIO_FUNC_I2C);
-  /*gpio_set_function(GPIO_I2C0_SDA, GPIO_FUNC_I2C);*/
-  /*gpio_set_function(GPIO_I2C0_SCL, GPIO_FUNC_I2C);*/
+  gpio_set_function(GPIO_I2C0_SDA, GPIO_FUNC_I2C);
+  gpio_set_function(GPIO_I2C0_SCL, GPIO_FUNC_I2C);
+
+  gpio_pull_up(GPIO_I2C1_SDA);
+  gpio_pull_up(GPIO_I2C1_SCL);
+  gpio_pull_up(GPIO_I2C0_SDA);
+  gpio_pull_up(GPIO_I2C0_SCL);
 
   // Initialize the I2C mutex.
   mutex_init(&i2c1_mutex);
@@ -197,7 +202,7 @@ void core0_main(void) {
     hid_task();   // Send HID reports to the host.
     slider_task(&i2c1_mutex);
     communication_task(&i2c1_mutex,
-                       tud_connected()); // Send messages to other slab devices.
+                       true); // Send messages to other slab devices.
   }
 }
 
@@ -214,13 +219,17 @@ int main(void) {
   make_keys(); // Generate the defualt keymap.
 
   rgbleds_init(GPIO_WS2812, pio0);
-  buzzer_init(GPIO_BUZZER);
-  buzzer_play(0);
+  /*buzzer_init(GPIO_BUZZER);*/
+  /*buzzer_play(0);*/
   stdio_uart_init_full(uart0, 115200, GPIO_UART_TX, GPIO_UART_RX);
   i2c_devices_init();
 
   gpio_init(17);
   gpio_set_dir(17, GPIO_OUT);
+  gpio_init(16);
+  gpio_set_dir(16, GPIO_OUT);
+  gpio_init(25);
+  gpio_set_dir(25, GPIO_OUT);
 
   multicore_launch_core1(core1_main);
   core0_main();

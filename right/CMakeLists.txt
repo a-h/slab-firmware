@@ -1,19 +1,19 @@
 add_compile_definitions(SQUIRREL_KEYCOUNT=30)
 
-add_subdirectory(${PROJECT_SOURCE_DIR}/shared/tinyusb tinyusb)
-add_subdirectory(${PROJECT_SOURCE_DIR}/shared/buzzer buzzer)
-add_subdirectory(${PROJECT_SOURCE_DIR}/shared/slider slider)
-add_subdirectory(${PROJECT_SOURCE_DIR}/shared/display display)
-add_subdirectory(${PROJECT_SOURCE_DIR}/shared/rgbleds rgbleds)
-add_subdirectory(${PROJECT_SOURCE_DIR}/shared/communication communication)
+#add_subdirectory(${PROJECT_SOURCE_DIR}/shared/tinyusb tinyusb-right)
+#add_subdirectory(${PROJECT_SOURCE_DIR}/shared/buzzer buzzer-right)
+#add_subdirectory(${PROJECT_SOURCE_DIR}/shared/slider slider-right)
+#add_subdirectory(${PROJECT_SOURCE_DIR}/shared/display display-right)
+#add_subdirectory(${PROJECT_SOURCE_DIR}/shared/rgbleds rgbleds-right)
+#add_subdirectory(${PROJECT_SOURCE_DIR}/shared/communication communication-right)
 
 add_executable(slab-right
         ${CMAKE_CURRENT_LIST_DIR}/main.c
         )
 
-add_subdirectory($ENV{SQUIRREL_PATH} squirrel)
+#add_subdirectory($ENV{SQUIRREL_PATH} squirrel-right)
 target_include_directories(slab-right PUBLIC $ENV{SQUIRREL_PATH}/include)
-add_subdirectory($ENV{PCA9555_PATH} pca9555)
+#add_subdirectory($ENV{PCA9555_PATH} pca9555-right)
 target_include_directories(slab-right PUBLIC $ENV{PCA9555_PATH}/include)
 
 target_sources(slab-right PUBLIC

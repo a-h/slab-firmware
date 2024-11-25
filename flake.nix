@@ -62,6 +62,7 @@
             installPhase = ''
               runHook preInstall
               mkdir -p $out
+              cp left/{*.bin,*.elf,*.uf2,*.elf.map,*.dis} $out
               cp right/{*.bin,*.elf,*.uf2,*.elf.map,*.dis} $out
               runHook postInstall
             '';

@@ -21,4 +21,5 @@ endif()
 # Initialize the SDK
 pico_sdk_init()
 
+add_subdirectory(left)
 add_subdirectory(right)

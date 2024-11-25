@@ -130,6 +130,7 @@ void check_keys(void) {
 
     for (int i = 0; i < 30; i++) {
       if (inputs_combined & lookup_expanders[i]) {
+        /*buzzer_play(128);*/
         interaction();
       }
       check_key(i, inputs_combined & lookup_expanders[i]);

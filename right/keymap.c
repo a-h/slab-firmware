@@ -33,12 +33,12 @@ void make_keys(void) {
   layers[0].keys[20] = keyboard(HID_KEY_COMMA);
   layers[0].keys[21] = keyboard(HID_KEY_DECIMAL_SEPARATOR);
   layers[0].keys[22] = keyboard(HID_KEY_SLASH);
-  layers[0].keys[23] = keyboard_modifier(HID_KEY_SHIFT_RIGHT);
+  layers[0].keys[23] = keyboard_modifier(KEYBOARD_MODIFIER_RIGHTSHIFT);
   // ----
   layers[0].keys[24] = keyboard(HID_KEY_SPACE);
   layers[0].keys[25] = layer_momentary(1);
   layers[0].keys[26] = layer_momentary(2);
-  layers[0].keys[27] = keyboard_modifier(HID_KEY_ALT_RIGHT);
+  layers[0].keys[27] = keyboard_modifier(KEYBOARD_MODIFIER_RIGHTALT);
   layers[0].keys[28] = keyboard(HID_KEY_GUI_RIGHT);
   layers[0].keys[29] = keyboard(HID_KEY_POWER);
 

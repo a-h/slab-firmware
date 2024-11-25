@@ -28,16 +28,16 @@ void make_keys(void) {
   layers[0].keys[16] = keyboard(HID_KEY_T);
   layers[0].keys[17] = keyboard(HID_KEY_G);
   // ----
-  layers[0].keys[18] = keyboard_modifier(HID_KEY_SHIFT_LEFT);
+  layers[0].keys[18] = keyboard_modifier(KEYBOARD_MODIFIER_LEFTSHIFT);
   layers[0].keys[19] = keyboard(HID_KEY_Z);
   layers[0].keys[20] = keyboard(HID_KEY_X);
   layers[0].keys[21] = keyboard(HID_KEY_M);
   layers[0].keys[22] = keyboard(HID_KEY_C);
   layers[0].keys[23] = keyboard(HID_KEY_V);
   // ----
-  layers[0].keys[24] = keyboard_modifier(HID_KEY_CONTROL_LEFT);
+  layers[0].keys[24] = keyboard_modifier(KEYBOARD_MODIFIER_LEFTCTRL);
   layers[0].keys[25] = keyboard(HID_KEY_GUI_LEFT);
-  layers[0].keys[26] = keyboard_modifier(HID_KEY_ALT_LEFT);
+  layers[0].keys[26] = keyboard_modifier(KEYBOARD_MODIFIER_LEFTALT);
   layers[0].keys[27] = layer_momentary(2);
   layers[0].keys[28] = layer_momentary(1);
   layers[0].keys[29] = keyboard(HID_KEY_RETURN);

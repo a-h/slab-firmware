@@ -31,7 +31,7 @@ void make_keys(void) {
   layers[0].keys[18] = keyboard(HID_KEY_K);
   layers[0].keys[19] = keyboard(HID_KEY_L);
   layers[0].keys[20] = keyboard(HID_KEY_COMMA);
-  layers[0].keys[21] = keyboard(HID_KEY_DECIMAL_SEPARATOR);
+  layers[0].keys[21] = keyboard(HID_KEY_PERIOD);
   layers[0].keys[22] = keyboard(HID_KEY_SLASH);
   layers[0].keys[23] = keyboard_modifier(KEYBOARD_MODIFIER_RIGHTSHIFT);
   // ----
@@ -43,4 +43,26 @@ void make_keys(void) {
   layers[0].keys[29] = keyboard(HID_KEY_POWER);
 
   layers[0].active = true;
+
+  // ----
+  layers[1].keys[0] = keyboard(HID_KEY_F6);
+  layers[1].keys[1] = keyboard(HID_KEY_F7);
+  layers[1].keys[2] = keyboard(HID_KEY_F8);
+  layers[1].keys[3] = keyboard(HID_KEY_F9);
+  layers[1].keys[4] = keyboard(HID_KEY_F10);
+  // ----
+  layers[1].keys[7] = keyboard(HID_KEY_HOME);
+  layers[1].keys[8] = keyboard(HID_KEY_END);
+  layers[1].keys[9] = keyboard(HID_KEY_F11);
+  layers[1].keys[10] = keyboard(HID_KEY_F12);
+  // ----
+  layers[1].keys[13] = keyboard(HID_KEY_MINUS);
+  layers[1].keys[14] = keyboard(HID_KEY_EQUAL);
+  layers[1].keys[15] = keyboard(HID_KEY_PAGE_UP);
+  layers[1].keys[16] = keyboard(HID_KEY_PAGE_DOWN);
+  // ----
+  layers[1].keys[19] = keyboard(HID_KEY_DELETE);
+  layers[1].keys[20] = keyboard(HID_KEY_PRINT_SCREEN);
+
+  layers[1].active = false;
 };

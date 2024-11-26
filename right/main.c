@@ -197,8 +197,8 @@ void core1_main(void) {
 void core0_main(void) {
   while (true) {
     check_keys(); // Check the keys on the keyboard for their states.
-    /*tud_task();   // TinyUSB task.*/
-    /*hid_task();   // Send HID reports to the host.*/
+    tud_task();   // TinyUSB task.
+    hid_task();   // Send HID reports to the host.
     slider_task(&i2c1_mutex);
     communication_task(&i2c1_mutex,
                        false); // Send messages to other slab devices.
@@ -208,11 +208,11 @@ void core0_main(void) {
 // The main function, runs initialization.
 int main(void) {
   // TinyUSB initialization
-  /*  board_init();*/
-  /*tud_init(BOARD_TUD_RHPORT);*/
-  /*if (board_init_after_tusb) {*/
-  /*board_init_after_tusb();*/
-  /*}*/
+  board_init();
+  tud_init(BOARD_TUD_RHPORT);
+  if (board_init_after_tusb) {
+    board_init_after_tusb();
+  }
 
   squirrel_init();
   make_keys(); // Generate the defualt keymap.

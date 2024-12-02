@@ -64,7 +64,7 @@ uint64_t last_interaction = 0;
 
 // idle_timeout is the amount of time in milliseconds before the user is
 // considered AFK. Set to UINT64_MAX to disable (585 million years).
-uint64_t idle_timeout = 15000;
+uint64_t idle_timeout = 1000;
 
 #define NUM_PIXELS 31 // 30 keys + 1 LED under the encoder.
 // leds stores the R, G, and B values for each LED in the LED strip.
@@ -183,10 +183,6 @@ void core1_main(void) {
     display_render(board_millis() - last_interaction > idle_timeout,
                    board_millis()); // Write the display buffer.
 
-    char buf[5];
-    sprintf(buf, "%d", slider_value);
-    ssd1306_draw_string(&display, 32, 0, 1, buf);
-
     display_draw(&i2c1_mutex); // Sends the display buffer to the OLED. This
     // will hang until the I2C bus is available -
     // usually fast enough.
@@ -201,7 +197,7 @@ void core0_main(void) {
     hid_task();   // Send HID reports to the host.
     slider_task(&i2c1_mutex);
     communication_task(&i2c1_mutex,
-                       false); // Send messages to other slab devices.
+                       tud_ready()); // Send messages to other slab devices.
   }
 }
 

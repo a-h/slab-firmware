@@ -10,7 +10,7 @@ jobs:
         submodules: recursive
     - uses: DeterminateSystems/nix-installer-action@main
     - uses: DeterminateSystems/magic-nix-cache-action@main
-    - run: nix build '.?submodules=1#slab-firmware'
+    - run: nix build 
     - uses: actions/upload-artifact@v4
       with:
         name: slab-hackpad.uf2

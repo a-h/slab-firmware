@@ -17,14 +17,13 @@ uint8_t our_address = 0b00010111;
 i2c_inst_t *master_i2c_inst;
 uint8_t their_address = 0b00010111;
 
-bool hasUSB = false;
-
 int i2c_sent_index = -1;
 uint8_t packet_send_buffer[9];
 int i2c_recv_index = -1;
 uint8_t packet_recv_buffer[9];
 
 int last_com = -1;
+bool send_due = false;
 
 static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
   switch (event) {
@@ -33,6 +32,7 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
       last_com = i2c_read_byte_raw(i2c);
       if (last_com == COM_TYPE_WANT_PACKET) {
         get_packet(&packet_send_buffer);
+        send_due = true;
       }
       return;
     }
@@ -44,26 +44,25 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
     }
     break;
   case I2C_SLAVE_REQUEST: // master waiting for a byte
-    if (last_com == COM_TYPE_WANT_PACKET) {
+    if (send_due) {
       i2c_sent_index++;
       i2c_write_byte_raw(i2c, packet_send_buffer[i2c_sent_index]);
-      if (i2c_sent_index == 8) {
+      if (i2c_sent_index >= 8) {
+        send_due = false;
         i2c_sent_index = -1;
         last_com = -1;
       }
     } else {
-      i2c_write_byte_raw(i2c, 0);
+      i2c_write_byte_raw(i2c, 0); // send a zero if we don't have anything to
+                                  // send
     }
     break;
   case I2C_SLAVE_FINISH: // master STOP / RESTART
     if (last_com == COM_TYPE_PACKET) {
+      last_com = -1;
+      i2c_recv_index = -1;
       process_packet(&packet_recv_buffer);
     }
-    if (last_com != COM_TYPE_WANT_PACKET) {
-      last_com = -1;
-    }
-    i2c_recv_index = -1;
-    i2c_sent_index = -1;
     break;
   default:
     break;
@@ -77,30 +76,13 @@ void communication_init(i2c_inst_t *master_i2c, i2c_inst_t *slave_i2c) {
   i2c_slave_init(slave_i2c_inst, our_address, &i2c_slave_handler);
 };
 
-bool lasthadUSB = false;
-
 void communication_task(mutex_t *i2c_mutex, bool usb_present) {
   /*gpio_put(16, 1);*/
   /*gpio_put(17, 1);*/
   gpio_put(25, !usb_present);
-  hasUSB = usb_present;
-
-  if (!hasUSB && lasthadUSB) { // USB just disconnected
-
-    uint8_t buffer[10] = {0}; // Nothing pressed, honest! ;)
-    buffer[0] = COM_TYPE_PACKET;
-
-    mutex_enter_blocking(i2c_mutex);
-    i2c_write_timeout_us(master_i2c_inst, their_address, buffer, 10, false,
-                         1000);
-    mutex_exit(i2c_mutex);
-    return;
-  }
-
-  lasthadUSB = hasUSB;
 
   // If we don't have USB, send data.
-  if (!hasUSB) {
+  if (!usb_present) {
     uint8_t squirrel_data[9];
     get_packet(&squirrel_data);
     uint8_t buffer[10];
@@ -113,27 +95,38 @@ void communication_task(mutex_t *i2c_mutex, bool usb_present) {
   };
 
   // If we have USB, ask for data.
-  if (hasUSB) {
+  if (usb_present) {
+    /*    // Check for slave*/
+    /*int ret;*/
+    /*uint8_t rxdata;*/
+    /*mutex_enter_blocking(i2c_mutex);*/
+    /*ret = i2c_read_blocking(master_i2c_inst, their_address, &rxdata, 1,
+     * false);*/
+    /*mutex_exit(i2c_mutex);*/
+    /*if (ret < 0) {*/
+    /*return;*/
+    /*}*/
+
     uint8_t buffer[1] = {COM_TYPE_WANT_PACKET};
-    uint8_t recv_buffer[9];
     mutex_enter_blocking(i2c_mutex);
     int write = i2c_write_timeout_us(master_i2c_inst, their_address, buffer, 1,
                                      false, 1000);
+    mutex_exit(i2c_mutex);
     if (write != 1) {
       gpio_put(16, 0);
-      mutex_exit(i2c_mutex);
       return;
-    } else {
-      gpio_put(16, 1);
     }
+    gpio_put(16, 1);
+    uint8_t recv_buffer[9];
+    mutex_enter_blocking(i2c_mutex);
     int read = i2c_read_timeout_us(master_i2c_inst, their_address, recv_buffer,
                                    9, false, 1000);
     mutex_exit(i2c_mutex);
-    if (read == 9) {
-      gpio_put(17, 1);
-      process_packet(&recv_buffer);
-    } else {
+    if (read != 9) {
       gpio_put(17, 0);
+      return;
     }
+    gpio_put(17, 1);
+    process_packet(&recv_buffer);
   };
 }

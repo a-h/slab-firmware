@@ -42,7 +42,7 @@ Directory: ./build
 
 ```bash
 cmake -DCMAKE_BUILD_TYPE=Release ..
-cmake --build . -j 16
+cmake --build . -j $(nproc)
 ```
 
 ### build-dbg
@@ -52,7 +52,7 @@ Builds the keyboard firmware with development outputs.
 
 ```bash
 cmake -DCMAKE_BUILD_TYPE=Debug .. 
-cmake --build . -j 16
+cmake --build . -j $(nproc)
 cp compile_commands.json ../ # Copies the autocomplete information for ccls.
 ```
 

@@ -16,9 +16,28 @@
             inherit system;
             overlays = [
               (final: prev: {
-                pico-sdk = prev.pico-sdk.override {
-                  withSubmodules = true;
-                };
+                picotool = prev.picotool.overrideAttrs
+                  ({
+                    version = "a672c2495a1a4cd5637d44a4842ef2274f1af492";
+                    src = prev.fetchFromGitHub {
+                      owner = "raspberrypi";
+                      repo = "picotool";
+                      rev = "a672c2495a1a4cd5637d44a4842ef2274f1af492";
+                      fetchSubmodules = true;
+                      hash = "sha256-xGFtKK8hEcP+qNGjRztBCrQfQelAWOI9jDyIqou6F0c=";
+                    };
+                  });
+                pico-sdk = prev.pico-sdk.overrideAttrs
+                  ({
+                    version = "969f5895aa6790a9c1af8ed31ccd06cc81fe36cf";
+                    src = prev.fetchFromGitHub {
+                      owner = "raspberrypi";
+                      repo = "pico-sdk";
+                      rev = "969f5895aa6790a9c1af8ed31ccd06cc81fe36cf";
+                      fetchSubmodules = true;
+                      hash = "sha256-7WVWGUAGVuWrxvZ/oapufCZ87btRvgXSfTk9nYTAMb0=";
+                    };
+                  });
               })
             ];
           };

@@ -2,7 +2,6 @@
 
 #include <hardware/i2c.h>
 #include <pico/i2c_slave.h>
-#include <pico/mutex.h>
 #include <pico/stdlib.h>
 
 enum com_type {
@@ -15,4 +14,4 @@ enum com_type {
 void communication_init(i2c_inst_t *master_i2c_inst,
                         i2c_inst_t *slave_i2c_inst);
 
-void communication_task(mutex_t *i2c_mutex, bool usb_present);
+void communication_task(bool usb_present);

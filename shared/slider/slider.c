@@ -1,5 +1,4 @@
 #include <hardware/i2c.h>
-#include <pico/mutex.h>
 #include <stdint.h>
 
 i2c_inst_t *slider_inst;
@@ -27,11 +26,9 @@ uint8_t i2c_configuration_buffer[1] = {
 };
 uint8_t i2c_recv_buffer[2];
 
-void slider_task(mutex_t *i2c_mutex) {
-  mutex_enter_blocking(i2c_mutex);
+void slider_task() {
   i2c_write_blocking(slider_inst, slider_address, i2c_configuration_buffer, 1,
                      false);
   i2c_read_blocking(slider_inst, slider_address, i2c_recv_buffer, 2, false);
-  mutex_exit(i2c_mutex);
   slider_value = (i2c_recv_buffer[0] << 8) | i2c_recv_buffer[1];
 }

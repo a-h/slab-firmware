@@ -54,10 +54,6 @@ const uint8_t I2C1_EXPANDER2 = 0b0100001;
 // ADC for reading slider values.
 const uint8_t I2C1_ADC = 0b1001000;
 
-// I2C mutex - prevents multiple cores from accessing the I2C bus at the same
-// time.
-mutex_t i2c1_mutex;
-
 // last_interaction is the time in milliseconds of the last interaction with the
 // keyboard.
 uint64_t last_interaction = 0;
@@ -121,26 +117,22 @@ void check_keys(void) {
   static uint16_t inputs1;
   static uint16_t inputs2;
 
-  if (mutex_try_enter(&i2c1_mutex, NULL)) {
-    inputs1 = pca9555_read_input(&i2c1_inst, I2C1_EXPANDER1);
-    inputs2 = pca9555_read_input(&i2c1_inst, I2C1_EXPANDER2);
-    mutex_exit(&i2c1_mutex);
+  inputs1 = pca9555_read_input(&i2c1_inst, I2C1_EXPANDER1);
+  inputs2 = pca9555_read_input(&i2c1_inst, I2C1_EXPANDER2);
 
-    uint32_t inputs_combined = (inputs2 << 16) | inputs1;
+  uint32_t inputs_combined = (inputs2 << 16) | inputs1;
 
-    for (int i = 0; i < 30; i++) {
-      if (inputs_combined & lookup_expanders[i]) {
-        interaction();
-      }
-      check_key(i, inputs_combined & lookup_expanders[i]);
+  for (int i = 0; i < 30; i++) {
+    if (inputs_combined & lookup_expanders[i]) {
+      interaction();
     }
+    check_key(i, inputs_combined & lookup_expanders[i]);
   }
 }
 
 void i2c_devices_init(void) {
   // Initialize the I2C bus.
   i2c_init(&i2c1_inst, 400000); // 400kHz
-  i2c_init(&i2c0_inst, 400000); // 400kHz
 
   // Configure the I2C pins.
   gpio_set_function(GPIO_I2C1_SDA, GPIO_FUNC_I2C);
@@ -150,14 +142,6 @@ void i2c_devices_init(void) {
 
   gpio_pull_up(GPIO_I2C1_SDA);
   gpio_pull_up(GPIO_I2C1_SCL);
-  gpio_pull_up(GPIO_I2C0_SDA);
-  gpio_pull_up(GPIO_I2C0_SCL);
-
-  // Initialize the I2C mutex.
-  mutex_init(&i2c1_mutex);
-
-  // We don't need to lock the I2C mutex here because this function is run
-  // before the multicore loop.
 
   // Configure the expanders with all pins as inputs.
   pca9555_configure(&i2c1_inst, I2C1_EXPANDER1, 0xFFFF);
@@ -179,13 +163,9 @@ void i2c_devices_init(void) {
 void core1_main(void) {
   flash_safe_execute_core_init(); // Declare we won't use flash on core 1.
   while (true) {
+    tud_task(); // TinyUSB task.
+    hid_task();
     rgbleds_update(leds, NUM_PIXELS); // Update the LED strip.
-    display_render(board_millis() - last_interaction > idle_timeout,
-                   board_millis()); // Write the display buffer.
-
-    display_draw(&i2c1_mutex); // Sends the display buffer to the OLED. This
-    // will hang until the I2C bus is available -
-    // usually fast enough.
   }
 }
 
@@ -193,11 +173,11 @@ void core1_main(void) {
 void core0_main(void) {
   while (true) {
     check_keys(); // Check the keys on the keyboard for their states.
-    tud_task();   // TinyUSB task.
-    hid_task();   // Send HID reports to the host.
-    slider_task(&i2c1_mutex);
-    communication_task(&i2c1_mutex,
-                       tud_ready()); // Send messages to other slab devices.
+    slider_task();
+    display_render(board_millis() - last_interaction > idle_timeout,
+                   board_millis()); // Write the display buffer.
+    display_draw();
+    communication_task(tud_ready()); // Send messages to other slab devices.
   }
 }
 

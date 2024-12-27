@@ -2,7 +2,6 @@
 #include <stdio.h>
 
 #include <hardware/i2c.h>
-#include <pico/mutex.h>
 
 #include <squirrel_quantum.h>
 #include <ssd1306.h>
@@ -73,8 +72,4 @@ void display_render(bool screensaver, uint64_t millis) {
   }
 }
 
-inline void display_draw(mutex_t *i2c_mutex) {
-  mutex_enter_blocking(i2c_mutex);
-  ssd1306_show(&display);
-  mutex_exit(i2c_mutex);
-}
+inline void display_draw() { ssd1306_show(&display); }

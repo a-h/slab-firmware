@@ -1,6 +1,5 @@
 #include <hardware/i2c.h>
 #include <pico/i2c_slave.h>
-#include <pico/mutex.h>
 #include <pico/stdlib.h>
 #include <squirrel_consumer.h>
 #include <squirrel_keyboard.h>
@@ -61,7 +60,7 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
       i2c_recv_index = -1;
       process_packet(&packet_recv_buffer);
     }
-    if (last_com == COM_TYPE_WANT_PACKET && i2c_sent_index != -1) {
+    if (last_com == COM_TYPE_WANT_PACKET && i2c_sent_index != -2) {
       i2c_sent_index = -1;
       last_com = -1;
     };
@@ -78,7 +77,9 @@ void communication_init(i2c_inst_t *master_i2c, i2c_inst_t *slave_i2c) {
   i2c_slave_init(slave_i2c_inst, our_address, &i2c_slave_handler);
 };
 
-void communication_task(mutex_t *i2c_mutex, bool usb_present) {
+bool last_usb_present = false;
+
+void communication_task(bool usb_present) {
   /*gpio_put(16, 1);*/
   /*gpio_put(17, 1);*/
   gpio_put(25, !usb_present);
@@ -90,44 +91,35 @@ void communication_task(mutex_t *i2c_mutex, bool usb_present) {
     uint8_t buffer[10];
     buffer[0] = COM_TYPE_PACKET;
     memcpy(buffer + 1, squirrel_data, 9);
-    mutex_enter_blocking(i2c_mutex);
     i2c_write_blocking(master_i2c_inst, their_address, buffer, 10, false);
-    mutex_exit(i2c_mutex);
   };
 
   // If we have USB, ask for data.
   if (usb_present) {
-    /*    // Check for slave*/
-    /*int ret;*/
-    /*uint8_t rxdata;*/
-    /*mutex_enter_blocking(i2c_mutex);*/
-    /*ret = i2c_read_blocking(master_i2c_inst, their_address, &rxdata, 1,
-     * false);*/
-    /*mutex_exit(i2c_mutex);*/
-    /*if (ret < 0) {*/
-    /*return;*/
-    /*}*/
+    if (!last_usb_present) {
+      // Read one set of data.
+      uint8_t recv_buffer[9];
+      int read = i2c_read_blocking(master_i2c_inst, their_address, recv_buffer,
+                                   9, false);
+    }
+    last_usb_present = usb_present;
 
-    /*    uint8_t buffer[1] = {COM_TYPE_WANT_PACKET};*/
-    /*mutex_enter_blocking(i2c_mutex);*/
-    /*int write =*/
-    /*i2c_write_blocking(master_i2c_inst, their_address, buffer, 1, false);*/
-    /*mutex_exit(i2c_mutex);*/
-    /*if (write != 1) {*/
-    /*gpio_put(16, 0);*/
-    /*return;*/
-    /*}*/
-    /*gpio_put(16, 1);*/
-    uint8_t recv_buffer[9];
-    mutex_enter_blocking(i2c_mutex);
+    uint8_t buffer[1] = {COM_TYPE_WANT_PACKET};
+    int write =
+        i2c_write_blocking(master_i2c_inst, their_address, buffer, 1, false);
+    if (write != 1) {
+      gpio_put(16, 0);
+      return;
+    }
+    gpio_put(16, 1);
+    uint8_t recv_buffer[9] = {0};
     int read = i2c_read_blocking(master_i2c_inst, their_address, recv_buffer, 9,
                                  false);
-    mutex_exit(i2c_mutex);
-    /*  if (read != 9) {*/
-    /*gpio_put(17, 0);*/
-    /*return;*/
-    /*}*/
-    /*gpio_put(17, 1);*/
+    if (read != 9) {
+      gpio_put(17, 0);
+      return;
+    }
+    gpio_put(17, 1);
     process_packet(&recv_buffer);
   };
 }

@@ -192,7 +192,7 @@ int main(void) {
     board_init_after_tusb();
   }
 
-  squirrel_init();
+  squirrel_init(30);
   make_keys(); // Generate the defualt keymap.
 
   rgbleds_init(GPIO_WS2812, pio0);

@@ -12,6 +12,7 @@
 ssd1306_t display;
 
 bool screensaver;
+bool central;
 bool leftmost;
 bool rightmost;
 
@@ -47,8 +48,10 @@ void draw_homescreen(int frame) {
     ssd1306_draw_string(&display, 50, 20, 1, "L");
   } else if (rightmost) {
     ssd1306_draw_string(&display, 50, 20, 1, "R");
-  } else {
+  } else if (central) {
     ssd1306_draw_string(&display, 50, 20, 1, "C");
+  } else {
+    ssd1306_draw_string(&display, 50, 20, 1, "U");
   }
 }
 

@@ -122,6 +122,9 @@ void communication_task(bool usb_present, bool should_screensaver,
     } else {
       rightmost = false;
     }
+    if (!rightmost && !leftmost) {
+      central = true;
+    }
   }
 
   uint8_t throwaway[1];

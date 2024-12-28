@@ -1,5 +1,6 @@
 #include <math.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #include <hardware/i2c.h>
 
@@ -10,10 +11,17 @@
 
 ssd1306_t display;
 
+bool screensaver;
+bool leftmost;
+bool rightmost;
+
 void display_init(i2c_inst_t *i2c_inst, ssd1306_rotation_t rotation,
                   uint8_t addr) {
   ssd1306_init(&display, 128, 32, addr, i2c_inst);
   ssd1306_set_rotation(&display, rotation);
+  leftmost = false;
+  rightmost = false;
+  screensaver = false;
 }
 
 void draw_homescreen(int frame) {
@@ -34,11 +42,20 @@ void draw_homescreen(int frame) {
   } else {
     ssd1306_draw_string(&display, 8, 6, 3, layer_number);
   };
+  // Board position indicator
+  if (leftmost) {
+    ssd1306_draw_string(&display, 50, 20, 1, "L");
+  } else if (rightmost) {
+    ssd1306_draw_string(&display, 50, 20, 1, "R");
+  } else {
+    ssd1306_draw_string(&display, 50, 20, 1, "C");
+  }
 }
 
 bool was_screensaver = false;
+bool screensaver = false;
 
-void display_render(bool screensaver, uint64_t millis) {
+void display_render(uint32_t millis) {
   if (screensaver && !was_screensaver) {
     ssd1306_clear(&display);
     ssd1306_poweroff(&display);

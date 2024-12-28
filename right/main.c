@@ -60,7 +60,7 @@ uint64_t last_interaction = 0;
 
 // idle_timeout is the amount of time in milliseconds before the user is
 // considered AFK. Set to UINT64_MAX to disable (585 million years).
-uint64_t idle_timeout = 60000; // 1 minute
+uint64_t idle_timeout = 1000; // 1 second
 
 #define NUM_PIXELS 31 // 30 keys + 1 LED under the encoder.
 // leds stores the R, G, and B values for each LED in the LED strip.
@@ -174,10 +174,11 @@ void core0_main(void) {
   while (true) {
     check_keys(); // Check the keys on the keyboard for their states.
     slider_task();
-    display_render(board_millis() - last_interaction > idle_timeout,
-                   board_millis()); // Write the display buffer.
+    display_render(board_millis()); // Write the display buffer.
     display_draw();
-    communication_task(tud_ready()); // Send messages to other slab devices.
+    communication_task(tud_ready(),
+                       board_millis() - last_interaction > idle_timeout,
+                       board_millis()); // Send messages to other slab devices.
   }
 }
 

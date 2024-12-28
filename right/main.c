@@ -60,7 +60,7 @@ uint64_t last_interaction = 0;
 
 // idle_timeout is the amount of time in milliseconds before the user is
 // considered AFK. Set to UINT64_MAX to disable (585 million years).
-uint64_t idle_timeout = 1000;
+uint64_t idle_timeout = 60000; // 1 minute
 
 #define NUM_PIXELS 31 // 30 keys + 1 LED under the encoder.
 // leds stores the R, G, and B values for each LED in the LED strip.

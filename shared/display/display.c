@@ -16,34 +16,6 @@ void display_init(i2c_inst_t *i2c_inst, ssd1306_rotation_t rotation,
   ssd1306_set_rotation(&display, rotation);
 }
 
-#define SCREENSAVER_LENGTH 14 // Length of the screensaver text.
-char screensaver_text[SCREENSAVER_LENGTH] = {'S', 'L', 'A', 'B', ' ', 'K', 'E',
-                                             'Y', 'B', 'O', 'A', 'R', 'D', ' '};
-
-void draw_screensaver(int frame) {
-  // write the screensaver text waving across the screen
-  ssd1306_clear(&display);
-  for (uint8_t x = 0; x < SCREENSAVER_LENGTH; x++) {
-    int y = 2 * sin(-frame / 10.0 + x * 2) + 8;
-    if (y < 0) {
-      y = 0;
-    }
-    if (y > 32) {
-      y = 32;
-    }
-    int letter_x = x * 22 + (-frame % (27 * SCREENSAVER_LENGTH)) + (22 * 3);
-    if (letter_x < 0) {
-      letter_x += (27 * SCREENSAVER_LENGTH);
-    }
-    if (letter_x > (27 * SCREENSAVER_LENGTH)) {
-      letter_x -= (27 * SCREENSAVER_LENGTH);
-    }
-    ssd1306_draw_char(&display, letter_x, y, 3, screensaver_text[x]);
-    ssd1306_draw_char(&display, letter_x - (27 * SCREENSAVER_LENGTH), y, 3,
-                      screensaver_text[x]);
-  }
-}
-
 void draw_homescreen(int frame) {
   // Layer number display
   ssd1306_clear(&display);
@@ -64,10 +36,19 @@ void draw_homescreen(int frame) {
   };
 }
 
+bool was_screensaver = false;
+
 void display_render(bool screensaver, uint64_t millis) {
-  if (screensaver) {
-    draw_screensaver(millis / 10);
-  } else {
+  if (screensaver && !was_screensaver) {
+    ssd1306_clear(&display);
+    ssd1306_poweroff(&display);
+    was_screensaver = screensaver;
+  }
+  if (!screensaver && was_screensaver) {
+    ssd1306_poweron(&display);
+    was_screensaver = screensaver;
+  }
+  if (!screensaver) {
     draw_homescreen(millis / 10);
   }
 }

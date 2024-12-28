@@ -132,7 +132,7 @@ void check_keys(void) {
 
 void i2c_devices_init(void) {
   // Initialize the I2C bus.
-  i2c_init(&i2c1_inst, 400000); // 400kHz
+  i2c_init(&i2c1_inst, 100000); // 400kHz
 
   // Configure the I2C pins.
   gpio_set_function(GPIO_I2C1_SDA, GPIO_FUNC_I2C);

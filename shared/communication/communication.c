@@ -50,9 +50,11 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
       i2c_sent_index = 0;
     }
     i2c_write_byte_raw(i2c, packet_send_buffer[i2c_sent_index]);
+    if (i2c_sent_index == 8) {
+      last_com = -1;
+      i2c_sent_index = -1;
+    }
     i2c_sent_index++;
-    last_com = -1;
-    i2c_sent_index = -1;
     break;
   case I2C_SLAVE_FINISH: // master STOP / RESTART
     if (last_com == COM_TYPE_PACKET) {

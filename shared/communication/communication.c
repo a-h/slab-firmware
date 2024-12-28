@@ -34,7 +34,24 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
     if (last_com == -1) {
       last_com = i2c_read_byte_raw(i2c);
       if (last_com == COM_TYPE_WANT_PACKET) {
-        get_packet(&packet_send_buffer);
+        if (leftmost) {
+          get_packet(&packet_send_buffer);
+        }else {
+    // ask for a SQUIRREL packet
+    uint8_t buffer[1] = {COM_TYPE_WANT_PACKET};
+    int write =
+        i2c_write_blocking(master_i2c_inst, their_address, buffer, 1, false);
+    if (write != 1) {
+      break;
+    }
+    uint8_t recv_buffer[9] = {0};
+    int read = i2c_read_blocking(master_i2c_inst, their_address, recv_buffer, 9,
+                                 false);
+    if (read != 9) {
+      break;
+    }
+    memcpy(packet_send_buffer, recv_buffer, 9);
+        }
         i2c_sent_index = -2;
       }
       if (last_com == COM_TYPE_ALIVE) {

@@ -124,7 +124,6 @@ void check_keys(void) {
 
   for (int i = 0; i < 30; i++) {
     if (inputs_combined & lookup_expanders[i]) {
-      /*buzzer_play(128);*/
       interaction();
     }
     check_key(i, inputs_combined & lookup_expanders[i]);
@@ -133,7 +132,7 @@ void check_keys(void) {
 
 void i2c_devices_init(void) {
   // Initialize the I2C bus.
-  i2c_init(&i2c1_inst, 100000); // 400kHz
+  i2c_init(&i2c1_inst, 100000); // 100kHz
 
   // Configure the I2C pins.
   gpio_set_function(GPIO_I2C1_SDA, GPIO_FUNC_I2C);
@@ -175,8 +174,10 @@ void core0_main(void) {
   while (true) {
     check_keys(); // Check the keys on the keyboard for their states.
     slider_task();
-    display_render(board_millis()); // Write the display buffer.
-    display_draw();
+    if (display_render(board_millis())) {
+      // Write the display buffer.
+      display_update();
+    };
     communication_task(tud_ready(),
                        board_millis() - last_interaction > idle_timeout,
                        board_millis()); // Send messages to other slab devices.
@@ -196,8 +197,8 @@ int main(void) {
   make_keys(); // Generate the defualt keymap.
 
   rgbleds_init(GPIO_WS2812, pio0);
-  /*buzzer_init(GPIO_BUZZER);*/
-  /*buzzer_play(0);*/
+  buzzer_init(GPIO_BUZZER);
+  buzzer_play(0);
   stdio_uart_init_full(uart0, 115200, GPIO_UART_TX, GPIO_UART_RX);
   i2c_devices_init();
 
@@ -208,6 +209,7 @@ int main(void) {
   gpio_init(25);
   gpio_set_dir(25, GPIO_OUT);
 
+  sleep_ms(100); // Wait for all peripherals to finish initializing.
   multicore_launch_core1(core1_main);
   core0_main();
 }

@@ -36,21 +36,8 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
       if (last_com == COM_TYPE_WANT_PACKET) {
         if (leftmost) {
           get_packet(&packet_send_buffer);
-        }else {
-    // ask for a SQUIRREL packet
-    uint8_t buffer[1] = {COM_TYPE_WANT_PACKET};
-    int write =
-        i2c_write_blocking(master_i2c_inst, their_address, buffer, 1, false);
-    if (write != 1) {
-      break;
-    }
-    uint8_t recv_buffer[9] = {0};
-    int read = i2c_read_blocking(master_i2c_inst, their_address, recv_buffer, 9,
-                                 false);
-    if (read != 9) {
-      break;
-    }
-    memcpy(packet_send_buffer, recv_buffer, 9);
+        } else {
+          // TODO: obtain packet from left
         }
         i2c_sent_index = -2;
       }
@@ -88,10 +75,6 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
       }
       i2c_sent_index++;
       break;
-    case COM_TYPE_WANT_EXTRA:
-      i2c_write_byte_raw(i2c, extra_data);
-      last_com = -1;
-      break;
     }
     break;
   case I2C_SLAVE_FINISH: // master STOP / RESTART
@@ -99,9 +82,9 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
       last_com = -1;
       i2c_recv_index = -1;
       process_packet(&packet_recv_buffer);
+      // TODO: pass packet to left
     }
-    if ((last_com == COM_TYPE_WANT_PACKET || last_com == COM_TYPE_WANT_EXTRA) &&
-        i2c_sent_index != -2) {
+    if (last_com == COM_TYPE_WANT_PACKET && i2c_sent_index != -2) {
       i2c_sent_index = -1;
       last_com = -1;
     };
@@ -149,6 +132,16 @@ void communication_task(bool usb_present, bool should_screensaver,
       i2c_read_blocking(master_i2c_inst, their_address, throwaway, 1, false);
   if (read_success != 1) {
     leftmost = true;
+  }
+
+  if (rightmost) {
+    extra_data = 0b00000000;
+    screensaver = should_screensaver;
+    if (should_screensaver) {
+      extra_data |= 0b00000001;
+    }
+    uint8_t buffer[2] = {COM_TYPE_EXTRA, extra_data};
+    i2c_write_blocking(master_i2c_inst, their_address, buffer, 2, false);
   }
 
   if (!usb_present) {

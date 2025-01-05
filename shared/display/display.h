@@ -1,7 +1,7 @@
 #pragma once
 
-#include <stdbool.h>
 #include "ssd1306.h"
+#include <stdbool.h>
 
 extern ssd1306_t display;
 
@@ -14,5 +14,6 @@ extern bool leftmost;
 extern bool rightmost;
 extern bool central;
 
-void display_render(uint32_t millis);
-void display_draw();
+// display_render returns true if the display needs redrawing
+bool display_render(uint32_t millis);
+void display_update();

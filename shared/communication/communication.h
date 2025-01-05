@@ -9,7 +9,6 @@ enum com_type {
   COM_TYPE_WANT_PACKET,
   COM_TYPE_PACKET,
   // SLAB data packet
-  COM_TYPE_WANT_EXTRA,
   COM_TYPE_EXTRA,
   // ALIVE packet
   COM_TYPE_ALIVE,

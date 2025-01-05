@@ -189,11 +189,11 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1735428752,
-        "narHash": "sha256-vG3b51xs/p0pWyoI2GaChkfuO0amj40DzErKkRsxgWc=",
+        "lastModified": 1735436504,
+        "narHash": "sha256-B4vk4kQAQLZh4dieViEu+4fjexRem5Vbc/OJj5pn0OY=",
         "owner": "headblockhead",
         "repo": "squirrel",
-        "rev": "d7754d71859881a8ff3c887059bdf034f4ee1fb7",
+        "rev": "cca77a907c76358e0e090076c284e9ded43ec453",
         "type": "github"
       },
       "original": {

@@ -174,8 +174,9 @@ void core0_main(void) {
   while (true) {
     check_keys(); // Check the keys on the keyboard for their states.
     slider_task();
-    display_render(board_millis()); // Write the display buffer.
-    display_draw();
+    if (display_render(board_millis())) { // Write the display buffer.
+      display_update();
+    }
     communication_task(tud_ready(),
                        board_millis() - last_interaction > idle_timeout,
                        board_millis()); // Send messages to other slab devices.

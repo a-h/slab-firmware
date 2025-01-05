@@ -6,20 +6,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-      with:
-        submodules: recursive
     - uses: DeterminateSystems/nix-installer-action@main
     - uses: DeterminateSystems/magic-nix-cache-action@main
     - run: nix build 
     - uses: actions/upload-artifact@v4
       with:
-        name: slab-hackpad.uf2
-        path: result/slab-hackpad.uf2
-    - uses: actions/upload-artifact@v4
-      with:
         name: slab-left.uf2
-        path: result/slab-left.uf2
+        path: result/left/slab-left.uf2
     - uses: actions/upload-artifact@v4
       with:
         name: slab-right.uf2
-        path: result/slab-right.uf2
+        path: result/right/slab-right.uf2

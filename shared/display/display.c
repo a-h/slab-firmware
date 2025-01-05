@@ -1,6 +1,7 @@
 #include <math.h>
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
 
 #include <hardware/i2c.h>
 
@@ -10,6 +11,8 @@
 #include "display.h"
 
 ssd1306_t display;
+
+bool was_screensaver = false;
 
 bool screensaver;
 bool central;
@@ -25,10 +28,15 @@ void display_init(i2c_inst_t *i2c_inst, ssd1306_rotation_t rotation,
   screensaver = false;
 }
 
-void draw_homescreen(int frame) {
-  // Layer number display
-  ssd1306_clear(&display);
-  ssd1306_draw_empty_square(&display, 2, 2, 27, 28);
+char old_layer_number[2] = "0";
+char old_position_indicator = 'U';
+
+// If force is true, the display will be redrawn regardless of whether the
+// contents have changed
+bool draw_homescreen(int frame, bool force) {
+  bool display_changed = false;
+
+  // Create layer number display
   char layer_number[2];
   uint8_t current_layer = 0;
   for (current_layer = 16; current_layer > 0; current_layer--) { // 15-0
@@ -38,39 +46,61 @@ void draw_homescreen(int frame) {
     sprintf(layer_number, "%d", current_layer - 1);
     break;
   }
-  if (current_layer >= 10) {
-    ssd1306_draw_string(&display, 4, 10, 2, layer_number);
-  } else {
-    ssd1306_draw_string(&display, 8, 6, 3, layer_number);
+
+  // Check if layer number has changed
+  if (strcmp(old_layer_number, layer_number) != 0) {
+    strcpy(old_layer_number, layer_number);
+    display_changed = true;
   };
+
   // Board position indicator
+  char position_indicator[1];
   if (leftmost) {
-    ssd1306_draw_string(&display, 50, 20, 1, "L");
+    position_indicator[0] = 'L';
   } else if (rightmost) {
-    ssd1306_draw_string(&display, 50, 20, 1, "R");
+    position_indicator[0] = 'R';
   } else if (central) {
-    ssd1306_draw_string(&display, 50, 20, 1, "C");
+    position_indicator[0] = 'C';
   } else {
-    ssd1306_draw_string(&display, 50, 20, 1, "U");
+    position_indicator[0] = 'U';
   }
+
+  if (old_position_indicator != position_indicator[0]) {
+    old_position_indicator = position_indicator[0];
+    display_changed = true;
+  }
+
+  if (display_changed || force) {
+    ssd1306_clear(&display);
+
+    ssd1306_draw_empty_square(&display, 2, 2, 27, 28);
+    if (current_layer >= 10) {
+      ssd1306_draw_string(&display, 4, 10, 2, layer_number);
+    } else {
+      ssd1306_draw_string(&display, 8, 6, 3, layer_number);
+    };
+
+    ssd1306_draw_string(&display, 50, 20, 1, position_indicator);
+
+    return true;
+  }
+  return false;
 }
 
-bool was_screensaver = false;
-bool screensaver = false;
-
-void display_render(uint32_t millis) {
+bool display_render(uint32_t millis) {
   if (screensaver && !was_screensaver) {
-    ssd1306_clear(&display);
     ssd1306_poweroff(&display);
     was_screensaver = screensaver;
-  }
-  if (!screensaver && was_screensaver) {
-    ssd1306_poweron(&display);
-    was_screensaver = screensaver;
+    return false;
   }
   if (!screensaver) {
-    draw_homescreen(millis / 10);
+    if (was_screensaver) {
+      ssd1306_poweron(&display);
+      was_screensaver = screensaver;
+    }
+    return draw_homescreen(millis / 10, false);
   }
+  return false;
 }
 
-inline void display_draw() { ssd1306_show(&display); }
+inline void display_update() { ssd1306_show(&display); }

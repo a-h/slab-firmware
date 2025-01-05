@@ -18,15 +18,19 @@ i2c_inst_t *master_i2c_inst;
 uint8_t their_address = 0b00010111;
 
 int i2c_sent_index = -1;
-uint8_t packet_send_buffer[9];
 int i2c_recv_index = -1;
-uint8_t packet_recv_buffer[9];
-
-int last_com = -1;
-
-uint8_t extra_data = 0b00000000;
+uint8_t squirrel_send_buffer[9];
+uint8_t squirrel_receive_buffer[9];
+uint8_t extra_send_buffer[1] = {0b00000000};
 
 int alive_count = 0;
+
+bool should_retransmit = false;
+enum com_type last_retransmit_type;
+uint8_t squirrel_retransmit_buffer[9];
+uint8_t extra_retransmit_buffer[1];
+
+int last_com = -1;
 
 static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
   switch (event) {
@@ -35,7 +39,7 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
       last_com = i2c_read_byte_raw(i2c);
       if (last_com == COM_TYPE_WANT_PACKET) {
         if (leftmost) {
-          get_packet(&packet_send_buffer);
+          get_packet(&squirrel_send_buffer);
         } else {
           // TODO: obtain packet from left
         }
@@ -50,11 +54,11 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
     switch (last_com) {
     case COM_TYPE_PACKET:
       i2c_recv_index++;
-      packet_recv_buffer[i2c_recv_index] = i2c_read_byte_raw(i2c);
+      squirrel_receive_buffer[i2c_recv_index] = i2c_read_byte_raw(i2c);
       break;
     case COM_TYPE_EXTRA:
-      extra_data = i2c_read_byte_raw(i2c);
-      screensaver = extra_data & 0b00000001;
+      extra_send_buffer[0] = i2c_read_byte_raw(i2c);
+      screensaver = extra_send_buffer[0] & 0b00000001;
       break;
     }
     break;
@@ -68,7 +72,7 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
       if (i2c_sent_index == -2) {
         i2c_sent_index = 0;
       }
-      i2c_write_byte_raw(i2c, packet_send_buffer[i2c_sent_index]);
+      i2c_write_byte_raw(i2c, squirrel_send_buffer[i2c_sent_index]);
       if (i2c_sent_index == 8) {
         last_com = -1;
         i2c_sent_index = -1;
@@ -81,8 +85,11 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
     if (last_com == COM_TYPE_PACKET || last_com == COM_TYPE_EXTRA) {
       last_com = -1;
       i2c_recv_index = -1;
-      process_packet(&packet_recv_buffer);
-      // TODO: pass packet to left
+      process_packet(&squirrel_receive_buffer);
+
+      should_retransmit = true;
+      last_retransmit_type = COM_TYPE_PACKET;
+      memcpy(squirrel_retransmit_buffer, squirrel_receive_buffer, 9);
     }
     if (last_com == COM_TYPE_WANT_PACKET && i2c_sent_index != -2) {
       i2c_sent_index = -1;
@@ -109,12 +116,13 @@ int last_alive_count = 1;
 
 void communication_task(bool usb_present, bool should_screensaver,
                         uint32_t millis) {
-  if (millis > last_millis + 500) {
+  // Determine if we are the rightmost or leftmost device
+  if (millis > last_millis + 25) {
     last_millis = millis;
     uint8_t buffer[1] = {COM_TYPE_ALIVE};
     i2c_write_blocking(master_i2c_inst, their_address, buffer, 1, false);
   }
-  if (millis > last_last_millis + 1000) {
+  if (millis > last_last_millis + 100) {
     last_last_millis = millis;
     if (last_alive_count >= alive_count) {
       rightmost = true;
@@ -134,13 +142,25 @@ void communication_task(bool usb_present, bool should_screensaver,
     leftmost = true;
   }
 
+  // Forward packets that need to be retransmitted
+  if (should_retransmit) {
+    if (last_retransmit_type == COM_TYPE_PACKET) {
+      uint8_t buffer[10];
+      buffer[0] = COM_TYPE_PACKET;
+      memcpy(buffer + 1, squirrel_retransmit_buffer, 9);
+      i2c_write_blocking(master_i2c_inst, their_address, buffer, 10, false);
+    }
+    should_retransmit = false;
+  }
+
+  // Send extra data leftward from the rightmost device
   if (rightmost) {
-    extra_data = 0b00000000;
+    extra_send_buffer[0] = 0b00000000;
     screensaver = should_screensaver;
     if (should_screensaver) {
-      extra_data |= 0b00000001;
+      extra_send_buffer[0] |= 0b00000001;
     }
-    uint8_t buffer[2] = {COM_TYPE_EXTRA, extra_data};
+    uint8_t buffer[2] = {COM_TYPE_EXTRA, extra_send_buffer[0]};
     i2c_write_blocking(master_i2c_inst, their_address, buffer, 2, false);
   }
 

@@ -5,13 +5,15 @@
 #include <pico/stdlib.h>
 
 enum com_type {
-  // SQUIRREL data packet
-  COM_TYPE_WANT_PACKET,
-  COM_TYPE_PACKET,
-  // SLAB data packet
-  COM_TYPE_EXTRA,
   // ALIVE packet
   COM_TYPE_ALIVE,
+  // Communication chain packets
+  COM_TYPE_ACCUMULATION_PACKET,
+  COM_TYPE_WANT_ACCUMULATION_STATUS,
+  COM_TYPE_DONE_ACCUMULATING,
+  COM_TYPE_NOT_DONE_ACCUMULATING,
+  COM_TYPE_WANT_SYNCHRONIZATION_PACKET,
+  COM_TYPE_SYNCHRONIZATION_COMPLETE,
 };
 
 // master_i2c_inst is the i2c_inst_t that the master talks on

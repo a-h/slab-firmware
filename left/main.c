@@ -140,9 +140,6 @@ void i2c_devices_init(void) {
   gpio_set_function(GPIO_I2C0_SDA, GPIO_FUNC_I2C);
   gpio_set_function(GPIO_I2C0_SCL, GPIO_FUNC_I2C);
 
-  gpio_pull_up(GPIO_I2C1_SDA);
-  gpio_pull_up(GPIO_I2C1_SCL);
-
   // Configure the expanders with all pins as inputs.
   pca9555_configure(&i2c1_inst, I2C1_EXPANDER1, 0xFFFF);
   pca9555_configure(&i2c1_inst, I2C1_EXPANDER2, 0xFFFF);

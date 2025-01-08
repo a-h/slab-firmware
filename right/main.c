@@ -56,11 +56,11 @@ const uint8_t I2C1_ADC = 0b1001000;
 
 // last_interaction is the time in milliseconds of the last interaction with the
 // keyboard.
-uint64_t last_interaction = 0;
+uint32_t last_interaction = 0;
 
 // idle_timeout is the amount of time in milliseconds before the user is
 // considered AFK. Set to UINT64_MAX to disable (585 million years).
-uint64_t idle_timeout = 1000; // 1 second
+uint32_t idle_timeout = 3000; // 3 seconds
 
 #define NUM_PIXELS 31 // 30 keys + 1 LED under the encoder.
 // leds stores the R, G, and B values for each LED in the LED strip.
@@ -132,16 +132,13 @@ void check_keys(void) {
 
 void i2c_devices_init(void) {
   // Initialize the I2C bus.
-  i2c_init(&i2c1_inst, 100000); // 400kHz
+  i2c_init(&i2c1_inst, 100000); // 100kHz
 
   // Configure the I2C pins.
   gpio_set_function(GPIO_I2C1_SDA, GPIO_FUNC_I2C);
   gpio_set_function(GPIO_I2C1_SCL, GPIO_FUNC_I2C);
   gpio_set_function(GPIO_I2C0_SDA, GPIO_FUNC_I2C);
   gpio_set_function(GPIO_I2C0_SCL, GPIO_FUNC_I2C);
-
-  gpio_pull_up(GPIO_I2C1_SDA);
-  gpio_pull_up(GPIO_I2C1_SCL);
 
   // Configure the expanders with all pins as inputs.
   pca9555_configure(&i2c1_inst, I2C1_EXPANDER1, 0xFFFF);
@@ -163,8 +160,8 @@ void i2c_devices_init(void) {
 void core1_main(void) {
   flash_safe_execute_core_init(); // Declare we won't use flash on core 1.
   while (true) {
-    tud_task(); // TinyUSB task.
-    hid_task();
+    tud_task();                       // TinyUSB task.
+    hid_task();                       // Send HID reports to the host.
     rgbleds_update(leds, NUM_PIXELS); // Update the LED strip.
   }
 }
@@ -174,9 +171,10 @@ void core0_main(void) {
   while (true) {
     check_keys(); // Check the keys on the keyboard for their states.
     slider_task();
-    if (display_render(board_millis())) { // Write the display buffer.
+    if (display_render(board_millis())) {
+      // Write the display buffer.
       display_update();
-    }
+    };
     communication_task(tud_ready(),
                        board_millis() - last_interaction > idle_timeout,
                        board_millis()); // Send messages to other slab devices.
@@ -196,8 +194,8 @@ int main(void) {
   make_keys(); // Generate the defualt keymap.
 
   rgbleds_init(GPIO_WS2812, pio0);
-  /*buzzer_init(GPIO_BUZZER);*/
-  /*buzzer_play(0);*/
+  buzzer_init(GPIO_BUZZER);
+  buzzer_play(0);
   stdio_uart_init_full(uart0, 115200, GPIO_UART_TX, GPIO_UART_RX);
   i2c_devices_init();
 
@@ -208,6 +206,7 @@ int main(void) {
   gpio_init(25);
   gpio_set_dir(25, GPIO_OUT);
 
+  sleep_ms(100); // Wait for all peripherals to finish initializing.
   multicore_launch_core1(core1_main);
   core0_main();
 }

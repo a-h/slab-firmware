@@ -191,6 +191,10 @@ void communication_task(bool usb_present, bool should_screensaver,
                         uint32_t millis) {
   left_or_right(millis);
 
+  if (rightmost && leftmost) {
+    return;
+  }
+
   if (should_send_accumulation) {
     should_send_accumulation = false;
     send_accumulation_and_wait();

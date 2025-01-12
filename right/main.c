@@ -147,7 +147,7 @@ void i2c_devices_init(void) {
   pca9555_input_inversion(&i2c1_inst, I2C1_EXPANDER2, 0xFFFF);
 
   // Initialize the OLED display.
-  display_init(&i2c1_inst, ROT_180, I2C1_OLED);
+  display_init(&i2c1_inst, ROT_90, I2C1_OLED);
 
   // Initialize the slider
   slider_init(&i2c1_inst, I2C1_ADC);
@@ -160,8 +160,9 @@ void i2c_devices_init(void) {
 void core1_main(void) {
   flash_safe_execute_core_init(); // Declare we won't use flash on core 1.
   while (true) {
-    tud_task();                       // TinyUSB task.
-    hid_task();                       // Send HID reports to the host.
+    tud_task(); // TinyUSB task.
+    hid_task(); // Send HID reports to the host.
+
     rgbleds_update(leds, NUM_PIXELS); // Update the LED strip.
   }
 }
@@ -193,7 +194,7 @@ int main(void) {
   squirrel_init(30);
   make_keys(); // Generate the defualt keymap.
 
-  rgbleds_init(GPIO_WS2812, pio0);
+  rgbleds_init(GPIO_WS2812);
   buzzer_init(GPIO_BUZZER);
   buzzer_play(0);
   stdio_uart_init_full(uart0, 115200, GPIO_UART_TX, GPIO_UART_RX);

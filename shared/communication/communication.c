@@ -192,26 +192,29 @@ void communication_task(bool usb_present, bool should_screensaver,
   left_or_right(millis);
 
   if (rightmost && leftmost) {
+    screensaver = should_screensaver;
     return;
   }
 
-  if (should_send_accumulation) {
-    should_send_accumulation = false;
-    send_accumulation_and_wait();
-  }
+  /*if (should_send_accumulation) {*/
+  /*should_send_accumulation = false;*/
+  /*send_accumulation_and_wait();*/
+  /*}*/
 
-  if (should_send_sync_complete) {
-    should_send_sync_complete = false;
-    uint8_t sync_complete_buffer[1] = {COM_TYPE_SYNCHRONIZATION_COMPLETE};
-    i2c_write_blocking(master_i2c_inst, their_address, sync_complete_buffer, 1,
-                       false);
-  }
+  /*if (should_send_sync_complete) {*/
+  /*should_send_sync_complete = false;*/
+  /*uint8_t sync_complete_buffer[1] = {COM_TYPE_SYNCHRONIZATION_COMPLETE};*/
+  /*i2c_write_blocking(master_i2c_inst, their_address, sync_complete_buffer,
+   * 1,*/
+  /*false);*/
+  /*}*/
 
-  // If we are the rightmost device, start the transmission chain.
-  if (rightmost) {
-    send_accumulation_and_wait();
-    uint8_t sync_complete_buffer[1] = {COM_TYPE_SYNCHRONIZATION_COMPLETE};
-    i2c_write_blocking(master_i2c_inst, their_address, sync_complete_buffer, 1,
-                       false);
-  }
+  /*// If we are the rightmost device, start the transmission chain.*/
+  /*if (rightmost) {*/
+  /*send_accumulation_and_wait();*/
+  /*uint8_t sync_complete_buffer[1] = {COM_TYPE_SYNCHRONIZATION_COMPLETE};*/
+  /*i2c_write_blocking(master_i2c_inst, their_address, sync_complete_buffer,
+   * 1,*/
+  /*false);*/
+  /*}*/
 }

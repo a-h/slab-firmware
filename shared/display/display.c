@@ -6,6 +6,7 @@
 #include <hardware/i2c.h>
 
 #include <squirrel_quantum.h>
+#include <squirrel_split.h>
 #include <ssd1306.h>
 
 #include "display.h"
@@ -40,7 +41,8 @@ bool draw_homescreen(int frame, bool force) {
   char layer_number[2];
   uint8_t current_layer = 0;
   for (current_layer = 16; current_layer > 0; current_layer--) { // 15-0
-    if (!layers[current_layer - 1].active) {
+    if (!layers[current_layer - 1].active &&
+        !remote_layers[current_layer - 1]) {
       continue;
     }
     sprintf(layer_number, "%d", current_layer - 1);
@@ -73,14 +75,17 @@ bool draw_homescreen(int frame, bool force) {
   if (display_changed || force) {
     ssd1306_clear(&display);
 
-    ssd1306_draw_empty_square(&display, 2, 2, 27, 28);
+    ssd1306_draw_empty_square(&display, 2, 2, 27, 27);
     if (current_layer >= 10) {
       ssd1306_draw_string(&display, 4, 10, 2, layer_number);
     } else {
       ssd1306_draw_string(&display, 8, 6, 3, layer_number);
     };
 
-    ssd1306_draw_string(&display, 50, 20, 1, position_indicator);
+    if (display.rotation == ROT_0 || display.rotation == ROT_180) {
+    } else {
+      ssd1306_draw_string(&display, 0, 32, 1, position_indicator);
+    }
 
     return true;
   }

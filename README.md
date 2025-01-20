@@ -105,6 +105,10 @@ sequenceDiagram
     participant Board 4
     participant Board 5 (R)
 
+    # First communication.
+
+    activate Board 1 (L)
+
     Board 5 (R) ->> Board 4: COM_TYPE_ACCUMULATION_PACKET
     Board 4 ->> Board 3: COM_TYPE_ACCUMULATION_PACKET
     Board 3 ->> Board 2: COM_TYPE_ACCUMULATION_PACKET
@@ -121,13 +125,67 @@ sequenceDiagram
 
     Board 2 ->> Board 1 (L): COM_TYPE_WANT_ACCUMULATION_STATUS
     Board 1 (L) ->> Board 2: COM_TYPE_DONE_ACCUMULATING
+    
+    activate Board 2
 
     Board 3 ->> Board 2: COM_TYPE_WANT_ACCUMULATION_STATUS
     Board 2 ->> Board 3: COM_TYPE_DONE_ACCUMULATING
 
+    activate Board 3
+
     Board 4 ->> Board 3: COM_TYPE_WANT_ACCUMULATION_STATUS
     Board 3 ->> Board 4: COM_TYPE_DONE_ACCUMULATING
 
+    activate Board 4
+
     Board 5 (R) ->> Board 4: COM_TYPE_WANT_ACCUMULATION_STATUS
     Board 4 ->> Board 5 (R): COM_TYPE_DONE_ACCUMULATING
+
+    activate Board 5 (R)
+
+    # Second communication.
+
+    deactivate Board 5 (R)
+    Board 5 (R) ->> Board 4: COM_TYPE_ACCUMULATION_PACKET
+    deactivate Board 4
+    Board 4 ->> Board 3: COM_TYPE_ACCUMULATION_PACKET
+    deactivate Board 3
+    Board 3 ->> Board 2: COM_TYPE_ACCUMULATION_PACKET
+    deactivate Board 2
+    Board 2 ->> Board 1 (L): COM_TYPE_ACCUMULATION_PACKET
+
+    Board 5 (R) ->> Board 4: COM_TYPE_WANT_ACCUMULATION_STATUS
+    Board 4 ->> Board 5 (R): COM_TYPE_NOT_DONE_ACCUMULATING
+
+    Board 4 ->> Board 3: COM_TYPE_WANT_ACCUMULATION_STATUS
+    Board 3 ->> Board 4: COM_TYPE_NOT_DONE_ACCUMULATING
+
+    Board 3 ->> Board 2: COM_TYPE_WANT_ACCUMULATION_STATUS
+    Board 2 ->> Board 3: COM_TYPE_NOT_DONE_ACCUMULATING
+
+    Board 2 ->> Board 1 (L): COM_TYPE_WANT_ACCUMULATION_STATUS
+    Board 1 (L) ->> Board 2: COM_TYPE_DONE_ACCUMULATING
+    
+    activate Board 2
+
+    Board 3 ->> Board 2: COM_TYPE_WANT_ACCUMULATION_STATUS
+    Board 2 ->> Board 3: COM_TYPE_DONE_ACCUMULATING
+
+    activate Board 3
+
+    Board 4 ->> Board 3: COM_TYPE_WANT_ACCUMULATION_STATUS
+    Board 3 ->> Board 4: COM_TYPE_DONE_ACCUMULATING
+
+    activate Board 4
+
+    Board 5 (R) ->> Board 4: COM_TYPE_WANT_ACCUMULATION_STATUS
+    Board 4 ->> Board 5 (R): COM_TYPE_DONE_ACCUMULATING
+
+    activate Board 5 (R)
+
+    deactivate Board 2
+    deactivate Board 3
+    deactivate Board 4
+    deactivate Board 5 (R)
+    deactivate Board 1 (L)
 ```

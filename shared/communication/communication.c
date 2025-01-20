@@ -19,10 +19,11 @@ uint8_t their_address = 0b00010111;
 
 bool should_send_accumulation_packet = false;
 bool slave_done_accumulating = false;
-uint8_t accumulation_buffer[11];
+
+uint8_t accumulation_buffer[11] = {0};
 int accumulation_buffer_index = 0;
 
-uint8_t accumulation_status_buffer[12];
+uint8_t accumulation_status_buffer[12] = {0};
 int accumulation_status_buffer_index = 0;
 
 int alive_count = 0;
@@ -50,16 +51,16 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
         break;
       }
       case COM_TYPE_WANT_ACCUMULATION_STATUS: {
-        accumulation_status_buffer_index = 0;
-        accumulation_status_buffer[0] = (slave_done_accumulating || leftmost)
-                                            ? COM_TYPE_DONE_ACCUMULATING
-                                            : COM_TYPE_NOT_DONE_ACCUMULATING;
         uint8_t packet_buffer[11];
         get_packet(&packet_buffer);
         memcpy(accumulation_status_buffer + 1, packet_buffer, 11);
+        accumulation_status_buffer[0] = (slave_done_accumulating || leftmost)
+                                            ? COM_TYPE_DONE_ACCUMULATING
+                                            : COM_TYPE_NOT_DONE_ACCUMULATING;
         break;
       }
       }
+
       return;
     }
 
@@ -70,6 +71,9 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
       accumulation_buffer_index++;
       break;
     }
+    default: {
+      i2c_read_byte_raw(i2c);
+    }
     }
     break;
   // Send data to the master
@@ -79,7 +83,7 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
       i2c_write_byte_raw(
           i2c, accumulation_status_buffer[accumulation_status_buffer_index]);
       accumulation_status_buffer_index++;
-      if (accumulation_status_buffer_index == 11) {
+      if (accumulation_status_buffer_index == 12) {
         last_com = -1;
       }
       break;
@@ -94,6 +98,7 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
     case COM_TYPE_ACCUMULATION_PACKET: {
       process_packet(&accumulation_buffer);
       last_com = -1;
+      slave_done_accumulating = false;
       should_send_accumulation_packet = true;
       break;
     }
@@ -153,32 +158,43 @@ void send_accumulation_packet(void) {
   i2c_write_blocking(master_i2c_inst, their_address, buffer, 12, false);
 }
 
-bool get_accumulation_status(uint8_t (*data_buffer)[11]) {
-  uint8_t buffer[1] = {COM_TYPE_WANT_ACCUMULATION_STATUS};
-  i2c_write_blocking(master_i2c_inst, their_address, buffer, 1, false);
-  uint8_t read_buffer[12];
-  i2c_read_blocking(master_i2c_inst, their_address, read_buffer, 12, false);
-  memcpy(*data_buffer, read_buffer + 1, 11);
-  return read_buffer[0] == COM_TYPE_DONE_ACCUMULATING;
-}
-
 void communication_task(bool usb_present, bool should_screensaver,
                         uint32_t millis) {
   left_or_right(millis);
 
+  for (int i = 0; i < 4; i++) {
+    uint8_t throwaway[8];
+    i2c_read_blocking(master_i2c_inst, their_address, throwaway, 8, false);
+  }
+
   if (rightmost && leftmost) {
+    should_send_accumulation_packet = false;
+    slave_done_accumulating = true;
     screensaver = should_screensaver;
     return;
   }
 
+  screensaver = false;
+
+  if (rightmost) {
+    slave_done_accumulating = false;
+  }
+
   if (rightmost || should_send_accumulation_packet) {
     send_accumulation_packet();
-    uint8_t accumulation_buffer[11];
-    bool slave_done_accumulating = false;
+    uint8_t accumulation_buffer[11] = {0};
+    slave_done_accumulating = false;
+    uint8_t read_buffer[12];
     while (!slave_done_accumulating) {
-      slave_done_accumulating = get_accumulation_status(&accumulation_buffer);
+      sleep_ms(5);
+
+      uint8_t buffer[1] = {COM_TYPE_WANT_ACCUMULATION_STATUS};
+      i2c_write_blocking(master_i2c_inst, their_address, buffer, 1, false);
+      i2c_read_blocking(master_i2c_inst, their_address, read_buffer, 12, false);
+      slave_done_accumulating = read_buffer[0] == COM_TYPE_DONE_ACCUMULATING;
     }
-    process_packet(&accumulation_buffer);
     should_send_accumulation_packet = false;
+    memcpy(accumulation_buffer, read_buffer + 1, 11);
+    process_packet(&accumulation_buffer);
   }
 }

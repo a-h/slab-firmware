@@ -150,7 +150,7 @@ void i2c_devices_init(void) {
   display_init(&i2c1_inst, ROT_90, I2C1_OLED);
 
   // Initialize the slider
-  slider_init(&i2c1_inst, I2C1_ADC);
+  /*slider_init(&i2c1_inst, I2C1_ADC);*/
 
   // Initialize communication with other slab devices.
   communication_init(&i2c1_inst, &i2c0_inst);
@@ -162,8 +162,7 @@ void core1_main(void) {
   while (true) {
     tud_task(); // TinyUSB task.
     hid_task(); // Send HID reports to the host.
-
-    rgbleds_update(leds, NUM_PIXELS); // Update the LED strip.
+    /*rgbleds_update(leds, NUM_PIXELS); // Update the LED strip.*/
   }
 }
 
@@ -171,7 +170,7 @@ void core1_main(void) {
 void core0_main(void) {
   while (true) {
     check_keys(); // Check the keys on the keyboard for their states.
-    slider_task();
+    /*slider_task();*/
     if (display_render(board_millis())) {
       // Write the display buffer.
       display_update();
@@ -194,10 +193,10 @@ int main(void) {
   squirrel_init(30);
   make_keys(); // Generate the defualt keymap.
 
-  rgbleds_init(GPIO_WS2812);
-  buzzer_init(GPIO_BUZZER);
-  buzzer_play(0);
-  stdio_uart_init_full(uart0, 115200, GPIO_UART_TX, GPIO_UART_RX);
+  /*rgbleds_init(GPIO_WS2812);*/
+  /*buzzer_init(GPIO_BUZZER);*/
+  /*buzzer_play(0);*/
+  /*stdio_uart_init_full(uart0, 115200, GPIO_UART_TX, GPIO_UART_RX);*/
   i2c_devices_init();
 
   gpio_init(17);

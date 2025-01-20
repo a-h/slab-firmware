@@ -10,8 +10,9 @@ enum com_type {
   // Communication chain packets
   COM_TYPE_ACCUMULATION_PACKET,
   COM_TYPE_WANT_ACCUMULATION_STATUS,
-  COM_TYPE_DONE_ACCUMULATING,
+  // Response packets
   COM_TYPE_NOT_DONE_ACCUMULATING,
+  COM_TYPE_DONE_ACCUMULATING,
 };
 
 // master_i2c_inst is the i2c_inst_t that the master talks on

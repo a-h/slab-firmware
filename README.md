@@ -89,10 +89,11 @@ Boards are chained together, with each board's I²C bus 1 connected to the next 
 Packets are made of 1 `packet_type` byte, followed by the appropriate amount of bytes for that `packet_type`.
 
 ##### Packet types:
+- `COM_TYPE_ALIVE` is 0 bytes, and is sent continuously to allow boards to know if the board that is controlling them is still alive.
 - `COM_TYPE_ACCUMULATION_PACKET` is 11 bytes, and contains all the SQUIRREL data, to be accumulated as it travels through the keyboard from right to left.
-- `COM_TYPE_WANT_ACCUMULATION_STATUS` is 0 bytes and is sent continuously until `COM_TYPE_DONE_ACCUMULATING_PACKET` is recieved as a response.
-- `COM_TYPE_NOT_DONE` is 0 bytes.
-- `COM_TYPE_DONE` is 11 bytes, containing the SQUIRREL data, as accumulated, from the leftmost board.
+- `COM_TYPE_WANT_ACCUMULATION_STATUS` is 0 bytes and is sent continuously until `COM_TYPE_DONE_ACCUMULATING` is recieved as a response.
+- `COM_TYPE_NOT_DONE_ACCUMULATING` is 11 bytes, all ignored.
+- `COM_TYPE_DONE_ACCUMULATING` is 11 bytes, containing the SQUIRREL data, as accumulated, from the leftmost board.
 
 #### Sequence Diagram
 
@@ -110,23 +111,23 @@ sequenceDiagram
     Board 2 ->> Board 1 (L): COM_TYPE_ACCUMULATION_PACKET
 
     Board 5 (R) ->> Board 4: COM_TYPE_WANT_ACCUMULATION_STATUS
-    Board 4 ->> Board 5 (R): COM_TYPE_NOT_DONE_ACCUMULATING_PACKET
+    Board 4 ->> Board 5 (R): COM_TYPE_NOT_DONE_ACCUMULATING
 
     Board 4 ->> Board 3: COM_TYPE_WANT_ACCUMULATION_STATUS
-    Board 3 ->> Board 4: COM_TYPE_NOT_DONE_ACCUMULATING_PACKET
+    Board 3 ->> Board 4: COM_TYPE_NOT_DONE_ACCUMULATING
 
     Board 3 ->> Board 2: COM_TYPE_WANT_ACCUMULATION_STATUS
-    Board 2 ->> Board 3: COM_TYPE_NOT_DONE_ACCUMULATING_PACKET
+    Board 2 ->> Board 3: COM_TYPE_NOT_DONE_ACCUMULATING
 
     Board 2 ->> Board 1 (L): COM_TYPE_WANT_ACCUMULATION_STATUS
-    Board 1 (L) ->> Board 2: COM_TYPE_DONE_ACCUMULATING_PACKET
+    Board 1 (L) ->> Board 2: COM_TYPE_DONE_ACCUMULATING
 
     Board 3 ->> Board 2: COM_TYPE_WANT_ACCUMULATION_STATUS
-    Board 2 ->> Board 3: COM_TYPE_DONE_ACCUMULATING_PACKET
+    Board 2 ->> Board 3: COM_TYPE_DONE_ACCUMULATING
 
     Board 4 ->> Board 3: COM_TYPE_WANT_ACCUMULATION_STATUS
-    Board 3 ->> Board 4: COM_TYPE_DONE_ACCUMULATING_PACKET
+    Board 3 ->> Board 4: COM_TYPE_DONE_ACCUMULATING
 
     Board 5 (R) ->> Board 4: COM_TYPE_WANT_ACCUMULATION_STATUS
-    Board 4 ->> Board 5 (R): COM_TYPE_DONE_ACCUMULATING_PACKET
+    Board 4 ->> Board 5 (R): COM_TYPE_DONE_ACCUMULATING
 ```

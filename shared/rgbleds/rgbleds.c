@@ -18,10 +18,8 @@ static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b) {
 
 void rgbleds_update(uint8_t leds[], uint pixel_count) {
   // Update the LED strip with the new data.
-  uint8_t hue = 0;
   for (int i = 0; i < pixel_count; i++) {
-    put_pixel(urgb_u32(hue, (hue + 85) % 255, (hue + 170) % 255));
-    hue = (hue + 1) % 255;
+    put_pixel(urgb_u32(leds[i * 3], leds[i * 3 + 1], leds[i * 3 + 2]));
   }
   sleep_us(50);
 }

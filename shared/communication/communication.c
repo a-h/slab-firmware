@@ -17,96 +17,86 @@ uint8_t our_address = 0b00010111;
 i2c_inst_t *master_i2c_inst;
 uint8_t their_address = 0b00010111;
 
+bool should_send_accumulation_packet = false;
+bool slave_done_accumulating = false;
+uint8_t accumulation_buffer[11];
+int accumulation_buffer_index = 0;
+
+uint8_t accumulation_status_buffer[12];
+int accumulation_status_buffer_index = 0;
+
 int alive_count = 0;
 int last_com = -1;
 
-int accumulation_index = 0;
-uint8_t accumulation_buffer[11];
-
-int sync_index = 0;
-uint8_t sync_buffer[11];
-
-bool accumulation_done = false;
-bool should_send_accumulation = false;
-bool should_send_sync_complete = false;
-
 static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
   switch (event) {
-    // Recive data from the master
+  // Recive data from the master
   case I2C_SLAVE_RECEIVE:
     // Each 'packet' has at least 1 header byte that tells us the COM_TYPE
-
     // If we don't have a com_type, use this byte to determine it.
     if (last_com == -1) {
       // Read the header byte
       last_com = i2c_read_byte_raw(i2c);
-
-      // If the header byte is ALIVE, we don't need to do anything, so increment
-      // the counter and pretend nothing happened
-      if (last_com == COM_TYPE_ALIVE) {
+      // COM_TYPE_ALIVE is a special case, there is no data to read, so we just
+      // increment the alive_count and pretend like nothing happened.
+      switch (last_com) {
+      case COM_TYPE_ALIVE: {
         alive_count++;
         last_com = -1;
+        break;
       }
-
-      // If the header byte is ACCUMULATION_PACKET, we need to reset the index
-      // to prepare for reading the packet.
-      if (last_com == COM_TYPE_ACCUMULATION_PACKET) {
-        accumulation_index = 0;
+      case COM_TYPE_ACCUMULATION_PACKET: {
+        accumulation_buffer_index = 0;
+        break;
       }
-
-      // If the header byte is WANT_SYNCHRONIZATION_PACKET, we need to write the
-      // packet into the buffer for the next 11 bytes we are about to send, and
-      // reset the index.
-      if (last_com == COM_TYPE_WANT_SYNCHRONIZATION_PACKET) {
-        sync_index = 0;
-        get_packet(&sync_buffer);
+      case COM_TYPE_WANT_ACCUMULATION_STATUS: {
+        accumulation_status_buffer_index = 0;
+        accumulation_status_buffer[0] = (slave_done_accumulating || leftmost)
+                                            ? COM_TYPE_DONE_ACCUMULATING
+                                            : COM_TYPE_NOT_DONE_ACCUMULATING;
+        uint8_t packet_buffer[11];
+        get_packet(&packet_buffer);
+        memcpy(accumulation_status_buffer + 1, packet_buffer, 11);
+        break;
       }
-
-      // If the header byte is SYNCHRONIZATION_COMPLETE, we need to forward it.
-      if (last_com == COM_TYPE_SYNCHRONIZATION_COMPLETE && !leftmost) {
-        should_send_sync_complete = true;
       }
-
-      // Nothing left to do with this byte.
       return;
     }
 
     // We have a com_type, so we can read the rest of the packet based on it.
     switch (last_com) {
-    case COM_TYPE_ACCUMULATION_PACKET:
-      accumulation_buffer[accumulation_index] = i2c_read_byte_raw(i2c);
-      accumulation_index++;
+    case COM_TYPE_ACCUMULATION_PACKET: {
+      accumulation_buffer[accumulation_buffer_index] = i2c_read_byte_raw(i2c);
+      accumulation_buffer_index++;
       break;
+    }
     }
     break;
   // Send data to the master
   case I2C_SLAVE_REQUEST:
     switch (last_com) {
-    case COM_TYPE_WANT_ACCUMULATION_STATUS:
-      i2c_write_byte_raw(i2c, accumulation_done || leftmost
-                                  ? COM_TYPE_DONE_ACCUMULATING
-                                  : COM_TYPE_NOT_DONE_ACCUMULATING);
-      last_com = -1;
+    case COM_TYPE_WANT_ACCUMULATION_STATUS: {
+      i2c_write_byte_raw(
+          i2c, accumulation_status_buffer[accumulation_status_buffer_index]);
+      accumulation_status_buffer_index++;
+      if (accumulation_status_buffer_index == 11) {
+        last_com = -1;
+      }
       break;
-    case COM_TYPE_WANT_SYNCHRONIZATION_PACKET:
-      i2c_write_byte_raw(i2c, sync_buffer[sync_index]);
-      sync_index++;
-      break;
+    }
+    default: {
+      i2c_write_byte_raw(i2c, 0);
+    }
     }
     break;
   case I2C_SLAVE_FINISH: // master STOP / RESTART
     switch (last_com) {
-    case COM_TYPE_ACCUMULATION_PACKET:
-      last_com = -1;
+    case COM_TYPE_ACCUMULATION_PACKET: {
       process_packet(&accumulation_buffer);
-      if (!leftmost) {
-        should_send_accumulation = true;
-      }
+      last_com = -1;
+      should_send_accumulation_packet = true;
       break;
-    case COM_TYPE_WANT_SYNCHRONIZATION_PACKET:
-      if (sync_index == 11) {
-        last_com = -1;
-      }
+    }
     }
     break;
   default:
@@ -154,37 +144,22 @@ void left_or_right(uint32_t millis) {
   }
 }
 
-void send_accumulation_and_wait() {
-  // Prepare the send_buffer with the packet data.
-  uint8_t send_buffer[12];
-  uint8_t packet_buffer[11];
-  memset(send_buffer, 0, 12);
-  get_packet(&packet_buffer);
-  memcpy(send_buffer + 1, packet_buffer, 11);
-  send_buffer[0] = COM_TYPE_ACCUMULATION_PACKET;
+void send_accumulation_packet(void) {
+  uint8_t buffer[12];
+  buffer[0] = COM_TYPE_ACCUMULATION_PACKET;
+  uint8_t squirrel_buffer[11];
+  get_packet(&squirrel_buffer);
+  memcpy(buffer + 1, squirrel_buffer, 11);
+  i2c_write_blocking(master_i2c_inst, their_address, buffer, 12, false);
+}
 
-  // Write the packet to the left device.
-  i2c_write_blocking(master_i2c_inst, their_address, send_buffer, 12, false);
-
-  // Constantly read bytes from the left device until we get a
-  // DONE_ACCUMULATING
-  uint8_t accu_buffer[1] = {COM_TYPE_NOT_DONE_ACCUMULATING};
-  uint8_t send_buffer_want[1] = {COM_TYPE_WANT_ACCUMULATION_STATUS};
-  while (!accumulation_done) {
-    i2c_write_blocking(master_i2c_inst, their_address, send_buffer_want, 1,
-                       false);
-    i2c_read_blocking(master_i2c_inst, their_address, accu_buffer, 1, false);
-    if (accu_buffer[0] == COM_TYPE_DONE_ACCUMULATING) {
-      accumulation_done = true;
-    }
-  }
-  uint8_t send_buffer_want_sync[1] = {COM_TYPE_WANT_SYNCHRONIZATION_PACKET};
-  i2c_write_blocking(master_i2c_inst, their_address, send_buffer_want_sync, 1,
-                     false);
-  uint8_t sync_buffer[11];
-  i2c_read_blocking(master_i2c_inst, their_address, sync_buffer, 11, false);
-  process_packet(&sync_buffer);
-  accumulation_done = false;
+bool get_accumulation_status(uint8_t (*data_buffer)[11]) {
+  uint8_t buffer[1] = {COM_TYPE_WANT_ACCUMULATION_STATUS};
+  i2c_write_blocking(master_i2c_inst, their_address, buffer, 1, false);
+  uint8_t read_buffer[12];
+  i2c_read_blocking(master_i2c_inst, their_address, read_buffer, 12, false);
+  memcpy(*data_buffer, read_buffer + 1, 11);
+  return read_buffer[0] == COM_TYPE_DONE_ACCUMULATING;
 }
 
 void communication_task(bool usb_present, bool should_screensaver,
@@ -196,25 +171,14 @@ void communication_task(bool usb_present, bool should_screensaver,
     return;
   }
 
-  /*if (should_send_accumulation) {*/
-  /*should_send_accumulation = false;*/
-  /*send_accumulation_and_wait();*/
-  /*}*/
-
-  /*if (should_send_sync_complete) {*/
-  /*should_send_sync_complete = false;*/
-  /*uint8_t sync_complete_buffer[1] = {COM_TYPE_SYNCHRONIZATION_COMPLETE};*/
-  /*i2c_write_blocking(master_i2c_inst, their_address, sync_complete_buffer,
-   * 1,*/
-  /*false);*/
-  /*}*/
-
-  /*// If we are the rightmost device, start the transmission chain.*/
-  /*if (rightmost) {*/
-  /*send_accumulation_and_wait();*/
-  /*uint8_t sync_complete_buffer[1] = {COM_TYPE_SYNCHRONIZATION_COMPLETE};*/
-  /*i2c_write_blocking(master_i2c_inst, their_address, sync_complete_buffer,
-   * 1,*/
-  /*false);*/
-  /*}*/
+  if (rightmost || should_send_accumulation_packet) {
+    send_accumulation_packet();
+    uint8_t accumulation_buffer[11];
+    bool slave_done_accumulating = false;
+    while (!slave_done_accumulating) {
+      slave_done_accumulating = get_accumulation_status(&accumulation_buffer);
+    }
+    process_packet(&accumulation_buffer);
+    should_send_accumulation_packet = false;
+  }
 }

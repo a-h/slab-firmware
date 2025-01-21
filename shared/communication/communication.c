@@ -51,12 +51,15 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
         break;
       }
       case COM_TYPE_WANT_ACCUMULATION_STATUS: {
+        accumulation_status_buffer_index = 0;
         uint8_t packet_buffer[11];
         get_packet(&packet_buffer);
         memcpy(accumulation_status_buffer + 1, packet_buffer, 11);
-        accumulation_status_buffer[0] = (slave_done_accumulating || leftmost)
-                                            ? COM_TYPE_DONE_ACCUMULATING
-                                            : COM_TYPE_NOT_DONE_ACCUMULATING;
+        if (slave_done_accumulating || leftmost) {
+          accumulation_status_buffer[0] = COM_TYPE_DONE_ACCUMULATING;
+        } else {
+          accumulation_status_buffer[0] = COM_TYPE_NOT_DONE_ACCUMULATING;
+        }
         break;
       }
       }
@@ -96,10 +99,12 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
   case I2C_SLAVE_FINISH: // master STOP / RESTART
     switch (last_com) {
     case COM_TYPE_ACCUMULATION_PACKET: {
-      process_packet(&accumulation_buffer);
+      if (accumulation_buffer_index == 11) {
+        process_packet(&accumulation_buffer);
+        slave_done_accumulating = false;
+        should_send_accumulation_packet = !leftmost;
+      }
       last_com = -1;
-      slave_done_accumulating = false;
-      should_send_accumulation_packet = true;
       break;
     }
     }
@@ -162,23 +167,12 @@ void communication_task(bool usb_present, bool should_screensaver,
                         uint32_t millis) {
   left_or_right(millis);
 
-  for (int i = 0; i < 4; i++) {
-    uint8_t throwaway[8];
-    i2c_read_blocking(master_i2c_inst, their_address, throwaway, 8, false);
-  }
-
   if (rightmost && leftmost) {
-    should_send_accumulation_packet = false;
-    slave_done_accumulating = true;
     screensaver = should_screensaver;
     return;
   }
 
   screensaver = false;
-
-  if (rightmost) {
-    slave_done_accumulating = false;
-  }
 
   if (rightmost || should_send_accumulation_packet) {
     send_accumulation_packet();

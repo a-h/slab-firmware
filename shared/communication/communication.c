@@ -175,8 +175,11 @@ void communication_task(bool usb_present, bool should_screensaver,
   screensaver = false;
 
   if (rightmost || should_send_accumulation_packet) {
+    if (rightmost) {
+      uint8_t empty_buffer[11] = {0};
+      process_packet(&empty_buffer);
+    }
     send_accumulation_packet();
-    uint8_t accumulation_buffer[11] = {0};
     slave_done_accumulating = false;
     uint8_t read_buffer[12];
     while (!slave_done_accumulating) {
@@ -188,6 +191,7 @@ void communication_task(bool usb_present, bool should_screensaver,
       slave_done_accumulating = read_buffer[0] == COM_TYPE_DONE_ACCUMULATING;
     }
     should_send_accumulation_packet = false;
+    uint8_t accumulation_buffer[11] = {0};
     memcpy(accumulation_buffer, read_buffer + 1, 11);
     process_packet(&accumulation_buffer);
   }

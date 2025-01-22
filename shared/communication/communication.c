@@ -158,7 +158,11 @@ void send_accumulation_packet(void) {
   uint8_t buffer[12];
   buffer[0] = COM_TYPE_ACCUMULATION_PACKET;
   uint8_t squirrel_buffer[11];
-  get_packet(&squirrel_buffer);
+  if (rightmost) {
+    get_local_packet(&squirrel_buffer);
+  } else {
+    get_packet(&squirrel_buffer);
+  }
   memcpy(buffer + 1, squirrel_buffer, 11);
   i2c_write_blocking(master_i2c_inst, their_address, buffer, 12, false);
 }
@@ -175,20 +179,22 @@ void communication_task(bool usb_present, bool should_screensaver,
   screensaver = false;
 
   if (rightmost || should_send_accumulation_packet) {
-    if (rightmost) {
-      uint8_t empty_buffer[11] = {0};
-      process_packet(&empty_buffer);
-    }
     send_accumulation_packet();
     slave_done_accumulating = false;
+    bool reads_failed = false;
     uint8_t read_buffer[12];
-    while (!slave_done_accumulating) {
+    while (!slave_done_accumulating && !reads_failed) {
       sleep_ms(5);
 
       uint8_t buffer[1] = {COM_TYPE_WANT_ACCUMULATION_STATUS};
       i2c_write_blocking(master_i2c_inst, their_address, buffer, 1, false);
-      i2c_read_blocking(master_i2c_inst, their_address, read_buffer, 12, false);
+      int read_result = i2c_read_blocking(master_i2c_inst, their_address,
+                                          read_buffer, 12, false);
+      reads_failed = read_result != 12;
       slave_done_accumulating = read_buffer[0] == COM_TYPE_DONE_ACCUMULATING;
+    }
+    if (reads_failed) {
+      return;
     }
     should_send_accumulation_packet = false;
     uint8_t accumulation_buffer[11] = {0};

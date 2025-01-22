@@ -172,6 +172,9 @@ void communication_task(bool usb_present, bool should_screensaver,
   left_or_right(millis);
 
   if (rightmost && leftmost) {
+    uint8_t squirrel_buffer[11];
+    get_local_packet(&squirrel_buffer);
+    process_packet(&squirrel_buffer);
     screensaver = should_screensaver;
     return;
   }

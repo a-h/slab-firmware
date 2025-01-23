@@ -129,9 +129,9 @@ int last_alive_count = 1;
 
 // Determine if we are the rightmost or leftmost device
 void left_or_right(uint32_t millis) {
-  uint8_t throwaway;
-  int read_success =
-      i2c_read_blocking(master_i2c_inst, their_address, &throwaway, 1, false);
+  uint8_t throwaway[8];
+  int read_success = i2c_read_timeout_us(master_i2c_inst, their_address,
+                                         throwaway, 8, false, 1000);
   if (read_success != 1) {
     leftmost = true;
   }
@@ -191,8 +191,8 @@ void communication_task(bool usb_present, bool should_screensaver,
 
       uint8_t buffer[1] = {COM_TYPE_WANT_ACCUMULATION_STATUS};
       i2c_write_blocking(master_i2c_inst, their_address, buffer, 1, false);
-      int read_result = i2c_read_blocking(master_i2c_inst, their_address,
-                                          read_buffer, 12, false);
+      int read_result = i2c_read_timeout_us(master_i2c_inst, their_address,
+                                            read_buffer, 12, false, 1000);
       reads_failed = read_result != 12;
       slave_done_accumulating = read_buffer[0] == COM_TYPE_DONE_ACCUMULATING;
     }

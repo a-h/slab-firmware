@@ -36,3 +36,4 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/shared/communication communication)
 
 add_subdirectory(left)
 add_subdirectory(right)
+add_subdirectory(hackpad)

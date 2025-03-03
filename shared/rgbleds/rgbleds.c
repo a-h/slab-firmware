@@ -63,9 +63,15 @@ void rgbleds_update(uint8_t *leds, uint pixel_count) {
   };
   next_render_ms += rgbleds_interval_ms;
 
+  // Fade the LED strip up over the first 1s to avoid sudden current draw.
+  int value = board_millis() / 10;
+  if (value > 100) {
+    value = 100;
+  }
+
   // Update the LED strip with the new data.
   for (int i = 0; i < pixel_count; i++) {
-    put_pixel(hsv2rgb((i * 7 + board_millis() / 8) % 360, 100, 100));
+    put_pixel(hsv2rgb((i * 7 + board_millis() / 8) % 360, 100, value));
   }
 }
 
